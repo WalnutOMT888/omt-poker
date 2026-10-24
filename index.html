@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>🏆 OMT战队第一赛季 · 德州排行榜</title>
+<style>
+:root{
+  --bg:#071228; --surface:#0d1d3a; --surface2:#152a52; --line:rgba(255,255,255,.09);
+  --gold:#e8b94a; --gold2:#f5d67b; --green:#34d399; --red:#f87171; --blue:#60a5fa;
+  --text:#f2f5f9; --dim:#93a3bd; --radius:16px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);background-image:radial-gradient(900px 480px at 50% -8%,rgba(35,80,160,.5),transparent 62%),radial-gradient(rgba(232,185,74,.05) 1px,transparent 1.4px);background-size:auto,22px 22px;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.5;min-height:100vh}
+.wrap{max-width:480px;margin:0 auto;padding:0 14px 92px}
+/* 顶栏 */
+.topbar{position:sticky;top:0;z-index:20;background:rgba(7,18,40,.92);backdrop-filter:blur(12px);padding:12px 14px 10px;margin:0 -14px 12px;border-bottom:1px solid rgba(232,185,74,.25);display:flex;align-items:center;gap:12px}
+.topbar .logo{width:52px;height:52px;border-radius:14px;border:1px solid rgba(232,185,74,.55);box-shadow:0 2px 14px rgba(232,185,74,.25);flex-shrink:0;display:block}
+.topbar h1{margin:0;font-size:20px;letter-spacing:.5px;color:var(--gold2)}
+.topbar h1 small{color:var(--dim);font-weight:400;font-size:12px;margin-left:8px}
+/* 赛季卡 */
+.season-card{background:linear-gradient(135deg,#16305e,#0d1d3a);border:1px solid rgba(232,185,74,.45);border-radius:var(--radius);padding:16px;margin-bottom:12px;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.season-card::after{content:"♠️";position:absolute;right:10px;top:6px;font-size:64px;opacity:.07;transform:rotate(-12deg)}
+.season-card .sname{font-size:17px;font-weight:700;color:var(--gold2)}
+.season-card .smeta{color:var(--dim);font-size:13px;margin-top:4px}
+.progress{height:6px;background:rgba(255,255,255,.08);border-radius:3px;margin-top:10px;overflow:hidden}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:3px}
+/* 搜索 */
+.search{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:11px 14px;font-size:15px;margin-bottom:12px;outline:none}
+.search::placeholder{color:var(--dim)}
+/* 排行榜 */
+.lb{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;min-height:72px}
+.lb-row:last-child{border-bottom:none}
+.lb-row:active{background:var(--surface2)}
+.rank{width:34px;text-align:center;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--dim);flex-shrink:0}
+.rank.r1{color:var(--gold2);text-shadow:0 0 12px rgba(232,185,74,.5)}
+.rank.r2{color:#c9d2e0}.rank.r3{color:#d29a5b}
+.avatar{width:46px;height:46px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;border:2px solid transparent;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avmini{width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:2px}
+.lb-row.top1{background:linear-gradient(90deg,rgba(232,185,74,.17),transparent 72%)}
+.lb-row.top2{background:linear-gradient(90deg,rgba(201,210,224,.11),transparent 72%)}
+.lb-row.top3{background:linear-gradient(90deg,rgba(210,154,91,.13),transparent 72%)}
+.r1 .avatar{border-color:var(--gold)} .r2 .avatar{border-color:#9aa5b8} .r3 .avatar{border-color:#b07a45}
+.pinfo{flex:1;min-width:0}
+.pname{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptitle{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pstats{text-align:right;flex-shrink:0}
+.pts{font-size:20px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums;line-height:1.2}
+.pgames{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.delta{font-size:11px;font-weight:700;margin-left:6px}
+.delta.up{color:var(--green)} .delta.down{color:var(--red)} .delta.flat{color:var(--dim)}
+.chev{color:var(--dim);font-size:14px}
+/* 区块标题 */
+.sect{font-size:13px;color:var(--dim);letter-spacing:2px;margin:20px 4px 10px;font-weight:600}
+/* 玩家详情 sheet */
+.sheet-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;opacity:0;pointer-events:none;transition:opacity .25s}
+.sheet-mask.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;transform:translate(-50%,100%);bottom:0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;background:var(--surface);border-radius:20px 20px 0 0;z-index:41;transition:transform .3s cubic-bezier(.32,.72,.35,1);padding:18px 18px 30px}
+.sheet.open{transform:translate(-50%,0)}
+.hero{text-align:center;padding:8px 0 4px;position:relative}
+.hero .avatar{width:84px;height:84px;font-size:44px;margin:0 auto 8px;border:3px solid var(--gold)}
+.hero h2{margin:0;font-size:22px}
+.hero .ptitle{font-size:13px;margin-top:2px}
+.hero .bestrank{display:inline-block;margin-top:8px;background:rgba(232,185,74,.14);border:1px solid rgba(232,185,74,.4);color:var(--gold2);font-weight:800;font-size:13px;padding:4px 14px;border-radius:20px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.stat{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.stat .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.stat .v.g{color:var(--green)} .stat .v.gold{color:var(--gold2)}
+.stat .k{font-size:12px;color:var(--dim);margin-top:2px}
+.tierbox{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.tierbox .t{font-size:13px;font-weight:700;margin-bottom:6px}
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px}
+.badge{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center}
+.badge .bi{font-size:26px}
+.badge .bn{font-size:11px;margin-top:4px;line-height:1.3}
+.badge.locked{opacity:.28;filter:grayscale(1)}
+.badge.rare{border-color:rgba(96,165,250,.5)} .badge.legendary{border-color:rgba(232,185,74,.6)}
+.gamelog{margin-top:6px}
+.grow{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.grow:last-child{border-bottom:none}
+.grow .gp{font-weight:800;font-variant-numeric:tabular-nums}
+.gp.pos{color:var(--green)} .gp.neg{color:var(--red)}
+/* 奖品 */
+.prize{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;display:flex;gap:14px;align-items:center}
+.prize .pe{font-size:38px;flex-shrink:0}
+.prize .pt{font-weight:800;font-size:16px}
+.prize .pd{color:var(--dim);font-size:13px;margin-top:2px}
+.prize.top{border-color:rgba(232,185,74,.65);background:linear-gradient(135deg,rgba(245,214,123,.30),rgba(201,150,46,.10) 55%,var(--surface));box-shadow:0 4px 22px rgba(232,185,74,.18)}
+/* 底部导航 */
+.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(10,22,46,.96);backdrop-filter:blur(12px);border-top:1px solid rgba(232,185,74,.22);display:flex;z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+.bottomnav a{flex:1;text-align:center;padding:11px 0 9px;color:var(--dim);text-decoration:none;font-size:11px}
+.bottomnav a .ni{font-size:21px;display:block;margin-bottom:2px}
+.bottomnav a.active{color:var(--gold2)}
+/* 按钮/表单 */
+.btn{display:block;width:100%;background:linear-gradient(135deg,var(--gold),#c9962e);color:#1a1405;font-weight:800;border:none;border-radius:12px;padding:14px;font-size:16px;cursor:pointer;margin-top:12px}
+.btn.ghost{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.4)}
+.btn.small{padding:9px;font-size:14px;margin-top:8px}
+label.f{display:block;font-size:13px;color:var(--dim);margin:14px 0 6px;font-weight:600}
+input.f,select.f{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px;font-size:15px;outline:none}
+input.f:focus,select.f:focus{border-color:var(--gold)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card h3{margin:0 0 4px;font-size:16px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.tab{flex:1;white-space:nowrap;background:var(--surface2);border:1px solid var(--line);color:var(--dim);border-radius:10px;padding:10px 6px;font-size:13px;font-weight:700;cursor:pointer;text-align:center}
+.tab.active{background:rgba(232,185,74,.15);border-color:var(--gold);color:var(--gold2)}
+.entry-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.entry-row select{flex:1.4} .entry-row input{flex:1}
+.entry-row .rm{background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:4px}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.kv:last-child{border:none} .kv b{font-variant-numeric:tabular-nums}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:#1f2937;border:1px solid var(--gold);color:var(--text);padding:12px 20px;border-radius:12px;z-index:99;transition:transform .3s;font-size:14px;font-weight:600}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.empty{text-align:center;color:var(--dim);padding:40px 20px;font-size:14px}
+.mode-tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle}
+.mode-tag.local{background:rgba(96,165,250,.15);color:var(--blue);border:1px solid rgba(96,165,250,.4)}
+.mode-tag.cloud{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.4)}
+h2.page{font-size:20px;margin:18px 0 12px;color:var(--gold2)}
+.note{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.6}
+/* 直播榜 / 牌桌 */
+.live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#f87171;margin-right:6px;animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(248,113,113,.55)}70%{box-shadow:0 0 0 8px rgba(248,113,113,0)}100%{box-shadow:0 0 0 0 rgba(248,113,113,0)}}
+.live-card{background:linear-gradient(135deg,#1a2c52,#0d1d3a);border:1px solid rgba(248,113,113,.5);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.live-card .lt{font-weight:800;font-size:16px}
+.live-card .lm{color:var(--dim);font-size:13px;margin-top:3px}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;vertical-align:middle}
+.pill.on{background:rgba(248,113,113,.14);color:#fca5a5;border:1px solid rgba(248,113,113,.45)}
+.pill.off{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.4)}
+.desk-row{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.desk-row .dh{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.desk-row .dh .avatar{width:38px;height:38px;font-size:20px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{background:rgba(232,185,74,.13);border:1px solid rgba(232,185,74,.45);color:var(--gold2);border-radius:16px;padding:3px 10px;font-size:13px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+.chip:active{background:rgba(232,185,74,.3)}
+.qb{background:var(--surface);border:1px solid rgba(232,185,74,.5);color:var(--gold2);border-radius:10px;padding:8px 0;font-size:14px;font-weight:800;cursor:pointer;flex:1}
+.qb:active{background:rgba(232,185,74,.22)}
+.warnbox{background:rgba(250,204,21,.10);border:1px solid rgba(250,204,21,.55);color:#fde68a;border-radius:12px;padding:10px 12px;font-size:13px;margin:10px 0;line-height:1.6}
+.okbox{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.4);color:#a7f3d0;border-radius:12px;padding:10px 12px;font-size:13px;margin:10px 0}
+details.legacy{margin-top:14px}
+details.legacy>summary{cursor:pointer;color:var(--dim);font-size:14px;font-weight:700;padding:8px 2px}
+/* 渠道切换条 / 玩法速记 / 结算单 */
+.chbar{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+.chbtn{flex:1;min-width:60px;background:var(--surface);border:1px solid var(--line);color:var(--dim);border-radius:10px;padding:8px 2px;font-size:13px;font-weight:700;cursor:pointer}
+.chbtn.on{background:rgba(232,185,74,.25);border-color:var(--gold);color:var(--gold2)}
+.chip.credit{background:rgba(96,165,250,.13);border-color:rgba(96,165,250,.5);color:#bfdbfe}
+.credit-warn{font-size:12px;color:#fde68a;margin-top:2px}
+.playrow{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.playrow:last-child{border-bottom:none}
+.stmt{background:var(--surface2);border:1px dashed rgba(232,185,74,.45);border-radius:12px;padding:12px 14px;margin-top:10px}
+.stmt .st{font-weight:800;font-size:14px;margin-bottom:6px;color:var(--gold2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><img class="logo" src="data:image/webp;base64,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" alt="OMT战队"><h1>🏆 OMT战队<small>第一赛季 · 德州排行榜</small></h1></div>
+  <div id="view"></div>
+</div>
+
+<!-- 玩家详情 sheet -->
+<div class="sheet-mask" id="sheetMask"></div>
+<div class="sheet" id="sheet"><div id="sheetBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<nav class="bottomnav" id="bottomnav">
+  <a href="#/" data-nav="board"><span class="ni">📊</span>排行</a>
+  <a href="#/live" data-nav="live"><span class="ni">🔴</span>今晚</a>
+  <a href="#/tickets" data-nav="tickets"><span class="ni">🎟️</span>抽奖</a>
+  <a href="#/prizes" data-nav="prizes"><span class="ni">🎁</span>奖品</a>
+  <a href="#/admin" data-nav="admin"><span class="ni">⚙️</span>管理</a>
+</nav>
+
+<script type="module">
+/* ============ 配置 ============ */
+const CONFIG = {
+  supabase: { url: "https://zvflaiedcclhndjxknye.supabase.co", anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2ZmxhaWVkY2NsaG5kanhrbnllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4MDQyMjEsImV4cCI6MjEwODM4MDIyMX0.UlonOV0zWe7RGn0-vRPnm2DTau2R9Kf1388PSZla1AQ" }, // 上线时填入；在 设置 页也可填写
+  adminPwDefault: "walnut888",
+};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt$ = n => (n>0?"+$":"−$") + Math.abs(Math.round(n)).toLocaleString();
+const uid = () => Math.random().toString(36).slice(2,10);
+const todayStr = () => new Date().toISOString().slice(0,10);
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
+/* 头像：玩家上传了照片（p.img，data URL）就显示照片，否则显示原 emoji 头像 */
+const avHTML = p => (p && p.img) ? `<img src="${p.img}" alt="">` : esc(p?.avatar || "🃏");
+const avMini = p => (p && p.img) ? `<img class="avmini" src="${p.img}" alt="">` : esc(p?.avatar || "");
+
+/* ============ 徽章定义 ============ */
+const BADGES = [
+  {id:"debut",    icon:"🌱", name:"初露锋芒", desc:"完成第一场比赛", rarity:""},
+  {id:"debut3",   icon:"🎉", name:"开门红",   desc:"首秀即进前三", rarity:""},
+  {id:"mvp",      icon:"👑", name:"单场MVP",  desc:"单场盈利第一", rarity:""},
+  {id:"win3",     icon:"🏆", name:"三冠王",   desc:"赛季内3次夺冠", rarity:"rare"},
+  {id:"streak3",  icon:"🔥", name:"连中三元", desc:"连续3场进前一半", rarity:"rare"},
+  {id:"whale",    icon:"🐋", name:"巨鲸",     desc:"单场盈利 ≥ $800", rarity:"rare"},
+  {id:"steady",   icon:"🎣", name:"稳坐钓鱼台", desc:"连续5场进前一半", rarity:"rare"},
+  {id:"hundred",  icon:"💯", name:"百分俱乐部", desc:"赛季积分破百", rarity:"legendary"},
+  {id:"ironman",  icon:"💪", name:"铁人",     desc:"累计出战10场", rarity:""},
+  {id:"referrer", icon:"🧭", name:"引路人",   desc:"成功推荐1位新人", rarity:""},
+  {id:"fullatt",  icon:"📅", name:"全勤奖",   desc:"赛季全勤", rarity:"legendary"},
+  {id:"comeback", icon:"⚡", name:"绝地反击", desc:"局头手动颁发", rarity:"legendary", manual:true},
+];
+const RARITY_TXT = {"":"普通","rare":"稀有","legendary":"传说"};
+
+/* ============ 演示数据 ============ */
+function seedData(){
+  const players = [
+    ["阿K","♠️","冷面杀手"],["大飞","🐉","龙桌巨鲸"],["Jenny","🌸","微笑刺客"],
+    ["老陈","🍵","茶桌诸葛"],["Vivian","💎","钻石女郎"],["阿豪","🔥","烈火战神"],
+    ["小北","❄️","冰雪聪明"],["Mimi","🐱","萌系收割机"],["强哥","💪","力量压制"],["Lisa","🌙","月夜潜行者"],
+  ].map(([name,avatar,title],i)=>({id:"p"+(i+1), name, avatar, title, referrer_id: i===8?"p1":(i===9?"p3":null), active:true}));
+  const season = {id:"s4", name:"OMT战队第一赛季", games_count:12, status:"active", start_date:"2026-10-25", end_date:"2026-11-30"};
+  const games = [
+    {id:"g1", season_id:"s4", date:"2026-10-03", buyin_tier:"标准"},
+    {id:"g2", season_id:"s4", date:"2026-10-10", buyin_tier:"标准"},
+    {id:"g3", season_id:"s4", date:"2026-10-17", buyin_tier:"深筹"},
+  ];
+  const profits = {
+    g1:{p1:620,p2:-150,p3:340,p4:95,p5:-400,p6:210,p7:-80,p8:45,p9:-260,p10:120},
+    g2:{p1:-120,p2:880,p3:150,p4:-60,p5:420,p6:-300,p7:260,p8:-90,p9:110,p10:-45},
+    g3:{p1:410,p2:120,p3:-200,p4:530,p5:-150,p6:90,p7:-40,p8:300,p9:-180,p10:65},
+  };
+  const entries = [];
+  for(const g of games) for(const [pid,profit] of Object.entries(profits[g.id]))
+    entries.push({id:uid(), game_id:g.id, player_id:pid, profit});
+  return {
+    players, seasons:[season], games, entries, player_badges:[],
+    tickets:[], draws:[],
+    settings:{ adminPw:"walnut888", attendancePts:1, buyinMult:{"标准":1,"深筹":1.5,"豪客":2}, whaleLine:800, creditLimit:3000,
+      ticketRules:{ontime:1,water:1,hours4:1,badbeat:1,bomb:2,flush:4,refer:2,leader:3,iron:8} },
+    prizes:[
+      {e:"🏆",t:"一等奖",d:"iPhone 折叠屏 1TB · 全新 × 1 台",top:1},
+      {e:"🎟️",t:"二等奖",d:"OMT 幸运码 1000 × 2 名",top:0},
+      {e:"🎟️",t:"三等奖",d:"OMT 幸运码 500 × 2 名",top:0},
+      {e:"📜",t:"OMT 幸运码说明",d:"战队垫付的免买入筹码，仅本局可用，不可提现、不可转让。输了亏损由战队承担；赢了先扣回幸运码面值，剩余盈利归你。赛季内有效。",top:0},
+    ],
+    _seeded:true,
+  };
+}
+
+/* ============ 存储层：本地 / Supabase ============ */
+let supa = null;
+const Local = {
+  async load(){ let d=null; try{ d=JSON.parse(localStorage.getItem("walnut_s4_db")); }catch(e){}
+    if(!d){ d=seedData(); localStorage.setItem("walnut_s4_db", JSON.stringify(d)); }
+    else if(d.seasons){ let ch=false; d.seasons.forEach(s=>{ if(s.name==="Walnut S4"){ s.name="OMT战队第一赛季"; ch=true; }
+      if(s.name==="OMT战队第一赛季"||s.id==="s4"){ if(s.start_date!=="2026-10-25"){ s.start_date="2026-10-25"; ch=true; } if(s.end_date!=="2026-11-30"){ s.end_date="2026-11-30"; ch=true; } } });
+      if(ch) localStorage.setItem("walnut_s4_db", JSON.stringify(d)); }
+    return d; },
+  async save(d){ localStorage.setItem("walnut_s4_db", JSON.stringify(d)); },
+  mode:"local",
+};
+async function initSupa(){
+  const url = localStorage.getItem("walnut_s4_sb_url") || CONFIG.supabase.url;
+  const key = localStorage.getItem("walnut_s4_sb_key") || CONFIG.supabase.anonKey;
+  if(!url || !key) return null;
+  try{
+    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+    const c = createClient(url, key);
+    const { error } = await c.from("players").select("id").limit(1);
+    if(error) throw error;
+    supa = c; return c;
+  }catch(e){ console.warn("supabase 连接失败，用本地模式", e); return null; }
+}
+const Cloud = {
+  async load(){
+    const [players,seasons,games,entries,pb,settings] = await Promise.all([
+      supa.from("players").select("*"), supa.from("seasons").select("*"),
+      supa.from("games").select("*"), supa.from("entries").select("*"),
+      supa.from("player_badges").select("*"), supa.from("settings").select("*"),
+    ]);
+    const s={}; (settings.data||[]).forEach(r=>s[r.key]=r.value);
+    const prizes = s.prizes || seedData().prizes;
+    let tickets=[], draws=[];
+    try{ const r=await supa.from("tickets").select("*"); if(!r.error) tickets=r.data||[]; }catch(e){}
+    try{ const r=await supa.from("draws").select("*"); if(!r.error) draws=r.data||[]; }catch(e){}
+    return { players:players.data||[], seasons:seasons.data||[], games:games.data||[],
+      entries:entries.data||[], player_badges:pb.data||[], tickets, draws,
+      settings:Object.assign({adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000}, s),
+      prizes };
+  },
+  async save(){},
+  mode:"cloud",
+};
+let DB=null, STORE=Local;
+async function dbPut(table, row){
+  if(STORE.mode==="cloud"){ const {error}=await supa.from(table).upsert(row); if(error) throw error; }
+}
+async function dbDel(table, id){
+  if(STORE.mode==="cloud"){ await supa.from(table).delete().eq("id",id); }
+}
+async function persist(){ await STORE.save(DB); }
+
+/* ============ 积分引擎 ============ */
+function gameResults(game){
+  const es = DB.entries.filter(e=>e.game_id===game.id);
+  const sorted=[...es].sort((a,b)=>b.profit-a.profit);
+  const n=sorted.length, mult=(DB.settings.buyinMult||{})[game.buyin_tier]||1;
+  const att=DB.settings.attendancePts ?? 1;
+  return sorted.map((e,i)=>{
+    let rank=i+1;
+    if(i>0 && e.profit===sorted[i-1].profit) rank=sorted._r||i; // 并列名次
+    sorted._r=rank;
+    return {player_id:e.player_id, profit:e.profit, rank, pts:Math.round((att + Math.max(n-rank+1,0))*mult)};
+  });
+}
+function standings(seasonId){
+  const games=DB.games.filter(g=>g.season_id===seasonId&&!isLiveGame(g)).sort((a,b)=>a.date<b.date?-1:1);
+  const map={};
+  DB.players.filter(p=>p.active).forEach(p=>map[p.id]={player:p,pts:0,games:0,profit:0,wins:0,best:null,ptsArr:[]});
+  const perGame=[];
+  games.forEach((g,gi)=>{
+    const res=gameResults(g); perGame.push({game:g,res});
+    res.forEach(r=>{ const s=map[r.player_id]; if(!s) return;
+      s.pts+=r.pts; s.games++; s.profit+=r.profit; s.ptsArr.push(r.pts);
+      if(r.rank===1) s.wins++;
+      if(s.best===null||r.rank<s.best) s.best=r.rank;
+      r.gameIdx=gi;
+    });
+  });
+  const rows=Object.values(map).filter(s=>s.games>0)
+    .sort((a,b)=>b.pts-a.pts||b.profit-a.profit)
+    .map((s,i)=>({...s, rank:i+1}));
+  return {rows, games, perGame};
+}
+function prevStandings(seasonId, uptoIdx){
+  const games=DB.games.filter(g=>g.season_id===seasonId&&!isLiveGame(g)).sort((a,b)=>a.date<b.date?-1:1).slice(0,uptoIdx);
+  const map={};
+  games.forEach(g=>gameResults(g).forEach(r=>{ map[r.player_id]=(map[r.player_id]||0)+r.pts; }));
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([pid],i)=>({pid,rank:i+1}));
+}
+function rankDelta(seasonId, pid, curRank, gameCount){
+  if(gameCount<2) return null;
+  const prev=prevStandings(seasonId, gameCount-1).find(p=>p.pid===pid);
+  if(!prev) return {t:"new"};
+  const d=prev.rank-curRank;
+  return d>0?{t:"up",n:d}:d<0?{t:"down",n:-d}:{t:"flat"};
+}
+function titleFor(rank,games){
+  if(rank===1&&games>=3) return "牌桌之王";
+  if(rank<=3) return "大亨";
+  if(rank<=6) return "悍将";
+  return "新锐";
+}
+
+/* ============ 徽章引擎 ============ */
+function awardBadge(pid,bid,gameId){
+  if(DB.player_badges.some(b=>b.player_id===pid&&b.badge_id===bid)) return false;
+  const row={player_id:pid,badge_id:bid,game_id:gameId||null,awarded_at:new Date().toISOString()};
+  DB.player_badges.push(row); dbPut("player_badges",row); return true;
+}
+function checkBadges(seasonId, game){
+  const {rows,perGame}=standings(seasonId);
+  const wl=DB.settings.whaleLine||800;
+  const newly=[];
+  const give=(pid,bid)=>{ if(awardBadge(pid,bid,game?game.id:null)) newly.push({pid,bid}); };
+  rows.forEach(s=>{
+    const pid=s.player.id;
+    if(s.games>=1) give(pid,"debut");
+    if(s.games>=10) give(pid,"ironman");
+    if(s.pts>=100) give(pid,"hundred");
+    if(s.wins>=1) give(pid,"mvp");
+    if(s.wins>=3) give(pid,"win3");
+    const p=DB.players.find(x=>x.id===pid);
+    if(p&&DB.players.some(x=>x.referrer_id===pid)) give(pid,"referrer");
+  });
+  // 首秀前三
+  perGame.forEach(({game:g,res},gi)=>{
+    res.forEach(r=>{
+      const prevGames=perGame.slice(0,gi).some(pg=>pg.res.some(x=>x.player_id===r.player_id));
+      if(!prevGames){ if(r.rank<=3) give(r.player_id,"debut3"); }
+      if(r.profit>=wl) give(r.player_id,"whale");
+    });
+  });
+  // 连胜 / 稳定：按时间顺序看每场是否进前一半
+  rows.forEach(s=>{
+    const pid=s.player.id;
+    const seq=perGame.map(({res})=>{ const r=res.find(x=>x.player_id===pid); if(!r) return null;
+      return r.rank<=Math.ceil(res.length/2); });
+    const lastN=n=>seq.slice(-n).every(Boolean)&&seq.slice(-n).length===n;
+    if(lastN(3)) give(pid,"streak3");
+    if(lastN(5)) give(pid,"steady");
+  });
+  return newly;
+}
+function playerBadges(pid){ return DB.player_badges.filter(b=>b.player_id===pid).map(b=>b.badge_id); }
+
+/* ============ 实时牌局引擎（buy in / cash out） ============
+   数据扩展（兼容既有结构）：
+   - games 增加 status："live"=进行中；"finished" 或缺省=已结束（历史数据无此字段，一律按已结束处理）
+   - games 增加 rake:number（本场水费，缺省 0）、plays:[]（玩法速记 {id,type,player_id,at}，缺省 []）
+   - 进行中场次的 entries 增加：buyins:流水数组、cash_out:number|null（null=还在桌上）
+   - buyins 流水元素现为对象 {amt, ch, paid}：ch=支付渠道（见 CHANNELS），paid=false 仅出现在挂账未结清时；
+     历史纯数字元素自动迁移为 {amt, ch:"cash", paid:true}（见 migrateBuyins），所有读取都经 buyinAmt/buyinCh/buyinPaid 兼容两种形态
+   - 结算时把最终盈亏写回 entry.profit，既有积分/徽章/统计逻辑完全不用改 */
+const CHANNELS=[
+  {id:"wechat",   label:"微信", short:"微信"},
+  {id:"alipay",   label:"支付宝", short:"支付宝"},
+  {id:"cash",     label:"现金", short:"现金"},
+  {id:"transfer", label:"转账", short:"转账"},
+  {id:"credit",   label:"挂账", short:"挂账"},
+];
+const chOf=id=>CHANNELS.find(c=>c.id===id)||CHANNELS[2];
+const buyinAmt = b => typeof b==="number" ? b : (parseFloat(b&&b.amt)||0);
+const buyinCh  = b => (b&&typeof b==="object"&&b.ch) ? b.ch : "cash";
+const buyinPaid= b => (b&&typeof b==="object") ? b.paid!==false : true;
+/* 玩法速记类型：feed=玩家端动态文案；鱿鱼只记录展示，炸弹/同花顺/皇家同花顺结算时自动发券 */
+const PLAY_TYPES=[
+  {id:"squid", icon:"🦑", label:"鱿鱼获胜", feed:"拿下鱿鱼"},
+  {id:"bomb",  icon:"💣", label:"炸弹",     feed:"开出炸弹"},
+  {id:"flush", icon:"🃏", label:"同花顺",   feed:"开出同花顺"},
+  {id:"royal", icon:"👑", label:"皇家同花顺", feed:"开出皇家同花顺"},
+];
+const playOf=id=>PLAY_TYPES.find(t=>t.id===id)||PLAY_TYPES[0];
+const isLiveGame = g => !!g && g.status==="live";
+const gameEntries = gid => DB.entries.filter(e=>e.game_id===gid);
+function liveGameOf(seasonId){ return DB.games.find(g=>g.season_id===seasonId && isLiveGame(g)) || null; }
+function buyinTotal(e){ return (e.buyins||[]).reduce((a,b)=>a+buyinAmt(b),0); }
+function entrySettled(e){ return e.cash_out!==null && e.cash_out!==undefined && e.cash_out!==""; }
+function liveProfit(e){ return entrySettled(e) ? parseFloat(e.cash_out)-buyinTotal(e) : null; }
+/* 旧对账口径（保留备用）：只统计已离场（已填 cash out）的玩家盈亏；在桌玩家暂不计入 */
+function settledProfitSum(game){ return gameEntries(game.id).filter(entrySettled).reduce((a,e)=>a+liveProfit(e),0); }
+/* 新对账口径（水费）：差额 = ∑全部买入 − ∑已离场 cash out − 本场水费。
+   在桌未离场者尚无 cash out、不计入带出，其买入仍在桌上，故差额要等全员离场后才应为 0 */
+function balanceDiff(game){
+  const es=gameEntries(game.id);
+  const tb=es.reduce((a,e)=>a+buyinTotal(e),0);
+  const co=es.filter(entrySettled).reduce((a,e)=>a+(parseFloat(e.cash_out)||0),0);
+  return tb-co-(parseFloat(game.rake)||0);
+}
+/* 挂账：某玩家全部场次未结清的挂账买入合计（渠道=挂账且未结清） */
+function unpaidCredit(pid){
+  let sum=0;
+  DB.entries.filter(e=>e.player_id===pid).forEach(e=>(e.buyins||[]).forEach(b=>{
+    if(buyinCh(b)==="credit"&&!buyinPaid(b)) sum+=buyinAmt(b);
+  }));
+  return sum;
+}
+/* 挂账汇总（后台挂账视图用）：按玩家聚合未结笔数与总额 */
+function creditRows(){
+  const map={};
+  DB.entries.forEach(e=>(e.buyins||[]).forEach(b=>{
+    if(buyinCh(b)==="credit"&&!buyinPaid(b)){
+      const m=map[e.player_id]||(map[e.player_id]={count:0,total:0});
+      m.count++; m.total+=buyinAmt(b);
+    }
+  }));
+  return Object.entries(map)
+    .map(([pid,m])=>({player:DB.players.find(x=>x.id===pid), ...m}))
+    .filter(x=>x.player).sort((a,b)=>b.total-a.total);
+}
+/* 玩法结算联动：炸弹→bomb 券、同花顺/皇家同花顺→flush 券（张数读既有发券规则，默认 2/4）；鱿鱼不发券 */
+function playTicketGrants(game){
+  const out=[];
+  (game.plays||[]).forEach(pl=>{
+    if(pl.type==="bomb") out.push({player_id:pl.player_id, reason:"bomb", count:ticketRule("bomb")});
+    else if(pl.type==="flush"||pl.type==="royal") out.push({player_id:pl.player_id, reason:"flush", count:ticketRule("flush")});
+  });
+  return out;
+}
+/* 本场结算单数据：按渠道汇总买入 + 水费 + 对账差额（全员有离场记录时才给差额，旧数据为 null） */
+function gameStatement(g){
+  const es=gameEntries(g.id);
+  const byCh={}; CHANNELS.forEach(c=>byCh[c.id]=0);
+  let hasBuy=false, total=0;
+  es.forEach(e=>(e.buyins||[]).forEach(b=>{ hasBuy=true; const a=buyinAmt(b); byCh[buyinCh(b)]+=a; total+=a; }));
+  const allSettled=es.length>0&&es.every(entrySettled);
+  return { byCh, hasBuy, total, rake:parseFloat(g.rake)||0, diff: allSettled? balanceDiff(g): null };
+}
+/* 荣誉榜（由已结算赛季数据自动统计，零录入）：水上王=累计盈利最高 / 水下守护者=累计亏损最多 / 到场王=参赛场次最多 */
+function honors(seasonId){
+  const {rows}=standings(seasonId);
+  if(!rows.length) return null;
+  const byProfit=[...rows].sort((a,b)=>b.profit-a.profit);
+  const byGames=[...rows].sort((a,b)=>b.games-a.games||b.profit-a.profit);
+  return { waterKing:byProfit[0], guardian:byProfit[byProfit.length-1], ironman:byGames[0] };
+}
+/* 数据迁移：把历史纯数字 buyins 流水转为对象形态，并补齐新字段默认值。返回是否有 entries 被迁移（云端需回写） */
+function migrateBuyins(){
+  let changed=false;
+  (DB.entries||[]).forEach(e=>{
+    if(!Array.isArray(e.buyins)) return;
+    e.buyins=e.buyins.map(b=>{
+      if(typeof b==="number"){ changed=true; return {amt:b, ch:"cash", paid:true}; }
+      if(b&&typeof b==="object"&&b.paid===undefined){ b.paid = b.ch==="credit" ? false : true; }
+      return b;
+    });
+  });
+  (DB.games||[]).forEach(g=>{ if(g.plays===undefined) g.plays=[]; if(g.rake===undefined) g.rake=0; });
+  if(DB.settings&&DB.settings.creditLimit==null) DB.settings.creditLimit=3000;
+  return changed;
+}
+function newLiveGame(seasonId, date, tier, pids){
+  const g={id:uid(), season_id:seasonId, date, buyin_tier:tier, status:"live", rake:0, plays:[], created_at:new Date().toISOString()};
+  DB.games.push(g);
+  pids.forEach(pid=>DB.entries.push({id:uid(), game_id:g.id, player_id:pid, profit:0, buyins:[], cash_out:null}));
+  return g;
+}
+function applyBuyin(e, amt, ch){
+  e.buyins=e.buyins||[];
+  const c=chOf(ch).id;
+  e.buyins.push({amt, ch:c, paid:c!=="credit"});
+}
+function settleGame(game){
+  gameEntries(game.id).forEach(e=>{ e.profit=(entrySettled(e)?parseFloat(e.cash_out):0)-buyinTotal(e); });
+  game.status="finished"; game.finished_at=new Date().toISOString();
+  return gameResults(game);
+}
+
+/* ============ 公开展示渲染 ============ */
+function activeSeason(){ return DB.seasons.find(s=>s.status==="active")||DB.seasons[0]; }
+/* 荣誉榜小卡（排行榜页）：全部自动统计，无数据（赛季尚无已结算场次）时整卡隐藏 */
+function honorsHTML(seasonId){
+  const h=honors(seasonId); if(!h) return "";
+  const row=(icon,label,s,val)=>`<div class="kv"><span>${icon} <b>${label}</b> · ${avMini(s.player)}${esc(s.player.name)}</span><b>${val}</b></div>`;
+  return `<div class="sect">👑 本赛季荣誉榜</div><div class="card" style="padding:6px 16px">
+    ${row("🏆","水上王",h.waterKing,fmt$(h.waterKing.profit))}
+    ${row("🛡️","水下守护者",h.guardian,fmt$(h.guardian.profit))}
+    ${row("🔥","到场王",h.ironman,h.ironman.games+" 场")}
+  </div>`;
+}
+function renderBoard(){
+  const s=activeSeason(); const v=$("#view");
+  if(!s){ v.innerHTML=`<div class="empty">还没有赛季，去管理后台创建一个吧</div>`; return; }
+  const {rows,games}=standings(s.id);
+  const live=liveGameOf(s.id);
+  const modeTag=STORE.mode==="cloud"
+    ? `<span class="mode-tag cloud">☁️ 云端实时</span>` : `<span class="mode-tag local">📱 本地演示</span>`;
+  v.innerHTML=`
+    <div class="season-card">
+      <div class="sname">🏆 ${esc(s.name)}${modeTag}</div>
+      <div class="smeta">${s.start_date?`${esc(s.start_date)} 至 ${esc(s.end_date||"")} · `:""}第 ${games.length}/${s.games_count} 场 · ${rows.length} 位玩家</div>
+      <div class="progress"><i style="width:${Math.min(100,games.length/s.games_count*100)}%"></i></div>
+    </div>
+    ${live?livePinHTML(live):""}
+    <input class="search" id="q" placeholder="🔍 搜索你的名字…" oninput="renderBoard()">
+    <div class="lb" id="lb"></div>
+    <div id="honors"></div>
+    <div class="sect">🎁 本赛季奖品池</div>
+    <div id="prizePrev"></div>`;
+  const q=($("#q")?.value||"").trim();
+  const list=rows.filter(r=>!q||r.player.name.includes(q));
+  $("#lb").innerHTML=list.length?list.map(s2=>{
+    const rc=s2.rank<=3?`r${s2.rank}`:"";
+    const d=rankDelta(s.id,s2.player.id,s2.rank,games.length);
+    const dHtml=d?(d.t==="new"?`<span class="delta up">NEW</span>`:d.t==="up"?`<span class="delta up">▲${d.n}</span>`:d.t==="down"?`<span class="delta down">▼${d.n}</span>`:`<span class="delta flat">–</span>`):"";
+    const nb=playerBadges(s2.player.id).length;
+    return `<div class="lb-row${s2.rank<=3?" top"+s2.rank:""}" onclick="openPlayer('${s2.player.id}')">
+      <div class="rank ${rc}">${s2.rank}</div>
+      <div class="avatar">${avHTML(s2.player)}</div>
+      <div class="pinfo"><div class="pname">${esc(s2.player.name)}</div>
+        <div class="ptitle">${esc(s2.player.title||titleFor(s2.rank,s2.games))} · 🏅${nb}</div></div>
+      <div class="pstats"><div class="pts">${s2.pts}<span style="font-size:12px;color:var(--dim)"> 分</span>${dHtml}</div>
+        <div class="pgames">${s2.games} 场 · ${fmt$(s2.profit)}</div></div>
+      <div class="chev">›</div></div>`;
+  }).join(""):`<div class="empty">没找到这个名字 🤔</div>`;
+  $("#honors").innerHTML=honorsHTML(s.id);
+  $("#prizePrev").innerHTML=(DB.prizes||[]).slice(0,3).map(prizeCard).join("")+
+    `<a href="#/prizes" style="display:block;text-align:center;color:var(--gold2);font-size:14px;margin:6px 0 10px">查看全部奖品 ›</a>`;
+  const qq=$("#q"); if(q){ qq.focus(); qq.setSelectionRange(q.length,q.length); }
+}
+function prizeCard(p){
+  return `<div class="prize${p.top?" top":""}"><div class="pe">${p.e}</div>
+    <div><div class="pt">${esc(p.t)}</div><div class="pd">${esc(p.d)}</div></div></div>`;
+}
+function livePinHTML(g){
+  const es=gameEntries(g.id);
+  const on=es.filter(e=>!entrySettled(e)).length, off=es.length-on;
+  return `<div class="live-card" onclick="location.hash='#/live'" style="cursor:pointer">
+    <div class="lt"><span class="live-dot"></span>今晚牌局 · 进行中</div>
+    <div class="lm">${esc(g.date)} · ${esc(g.buyin_tier)}局 · ${on} 人在桌${off?` · ${off} 人已离场`:""} · 点开看直播榜 ›</div></div>`;
+}
+function liveRowsHTML(g){
+  const es=gameEntries(g.id);
+  const left=es.filter(entrySettled).sort((a,b)=>liveProfit(b)-liveProfit(a));
+  const on=es.filter(e=>!entrySettled(e)).sort((a,b)=>buyinTotal(b)-buyinTotal(a));
+  const prow=(p)=>DB.players.find(x=>x.id===p)||{name:"?",avatar:"🃏"};
+  const leftHTML=left.length?left.map((e,i)=>{ const p=prow(e.player_id); const pf=liveProfit(e);
+    return `<div class="lb-row${i<3?" top"+(i+1):""}">
+      <div class="rank${i<3?" r"+(i+1):""}">${i+1}</div>
+      <div class="avatar">${avHTML(p)}</div>
+      <div class="pinfo"><div class="pname">${esc(p.name)} <span class="pill off">已离场</span></div>
+        <div class="ptitle">买入 $${buyinTotal(e).toLocaleString()} · 离场 $${(parseFloat(e.cash_out)||0).toLocaleString()}</div></div>
+      <div class="pstats"><div class="pts" style="color:${pf>=0?"var(--green)":"var(--red)"}">${fmt$(pf)}</div>
+        <div class="pgames">临时第 ${i+1} 名</div></div></div>`; }).join(""):`<div class="empty">还没有玩家离场</div>`;
+  const onHTML=on.length?on.map(e=>{ const p=prow(e.player_id);
+    return `<div class="lb-row">
+      <div class="rank">·</div>
+      <div class="avatar">${avHTML(p)}</div>
+      <div class="pinfo"><div class="pname">${esc(p.name)} <span class="pill on">在桌</span></div>
+        <div class="ptitle">已买入 ${(e.buyins||[]).length} 次</div></div>
+      <div class="pstats"><div class="pts" style="color:var(--gold2)">$${buyinTotal(e).toLocaleString()}</div>
+        <div class="pgames">总买入</div></div></div>`; }).join(""):`<div class="empty">桌上没人了</div>`;
+  return `<div class="sect">✅ 已离场 · 临时排名（按盈亏）</div><div class="lb">${leftHTML}</div>
+    <div class="sect">🪑 还在桌上</div><div class="lb">${onHTML}</div>`;
+}
+/* 玩家端今晚玩法动态（如「🦑 阿强 拿下鱿鱼」），最新在前 */
+function playsFeedHTML(g){
+  const plays=g.plays||[]; if(!plays.length) return "";
+  const prow=pid=>DB.players.find(x=>x.id===pid)||{name:"?",avatar:"🃏"};
+  return `<div class="sect">🎉 今晚玩法动态</div><div class="lb">${plays.slice().reverse().map(pl=>{ const t=playOf(pl.type); const p=prow(pl.player_id);
+    return `<div class="lb-row" style="cursor:default;min-height:56px">
+      <div class="avatar">${avHTML(p)}</div>
+      <div class="pinfo"><div class="pname" style="font-size:15px">${t.icon} ${esc(p.name)} ${esc(t.feed)}</div>
+        <div class="ptitle">${esc((pl.at||"").slice(11,16))} · ${esc(t.label)}</div></div></div>`; }).join("")}</div>`;
+}
+function renderLive(){
+  const s=activeSeason(); const v=$("#view");
+  if(!s){ v.innerHTML=`<div class="empty">还没有赛季</div>`; return; }
+  const g=liveGameOf(s.id);
+  if(!g){ v.innerHTML=`<h2 class="page">🔴 今晚牌局</h2><div class="empty">今晚暂无进行中的牌局<br>开局后这里会实时显示买入与战况 🎬</div>`; return; }
+  const es=gameEntries(g.id);
+  v.innerHTML=`<h2 class="page"><span class="live-dot"></span>今晚牌局 · 直播中</h2>
+    <div class="live-card"><div class="lt">${esc(g.date)} · ${esc(g.buyin_tier)}局</div>
+      <div class="lm">共 ${es.length} 位玩家 · 买入实时更新中${STORE.mode==="cloud"?"（约 12 秒自动刷新）":""}</div></div>
+    ${liveRowsHTML(g)}
+    ${playsFeedHTML(g)}
+    <div class="note">在桌玩家的盈亏要等离场结算后才确定；已离场排名为临时排名，本场结束并结算后计入赛季总榜。</div>`;
+}
+function renderPrizes(){
+  $("#view").innerHTML=`<h2 class="page">🎁 赛季奖品池</h2>
+    <div class="note" style="margin-bottom:14px">赛季末公开抽奖发放。奖品比隔壁只多不少 😉</div>`
+    +(DB.prizes||[]).map(prizeCard).join("");
+}
+
+/* ============ 抽奖券 🎟️ ============ */
+const DEFAULT_TICKETS={ontime:1,water:1,hours4:1,badbeat:1,bomb:2,flush:4,refer:2,leader:3,iron:8};
+const TICKET_REASONS=[
+  {id:"ontime", icon:"⏰", label:"准时到场", scope:"game"},
+  {id:"water",  icon:"🏆", label:"当场水下", scope:"game"},
+  {id:"hours4", icon:"⌛️", label:"打满 4 小时", scope:"game"},
+  {id:"badbeat",icon:"💔", label:"Bad Beat（AA/KK 翻牌前 All-in 被反超）", scope:"game"},
+  {id:"bomb",   icon:"💣", label:"开出炸弹", scope:"game"},
+  {id:"flush",  icon:"🃏", label:"开出同花顺", scope:"game"},
+  {id:"refer",  icon:"💕", label:"老带新（新人入群+打两场）", scope:"season"},
+  {id:"leader", icon:"🥇", label:"赛季积分榜首", scope:"season"},
+  {id:"iron",   icon:"👑", label:"坚守奖（积分倒数第一，满 12 场）", scope:"season"},
+];
+const reasonOf=rid=>TICKET_REASONS.find(r=>r.id===rid)||{icon:"🎟️",label:rid,scope:"game"};
+const ticketRule=rid=>{ const r=(DB.settings.ticketRules||{})[rid]; return r==null?(DEFAULT_TICKETS[rid]??1):r; };
+const seasonTickets=sid=>(DB.tickets||[]).filter(t=>t.season_id===sid);
+function ticketTotals(sid){
+  const map={};
+  seasonTickets(sid).forEach(t=>{ const e=map[t.player_id]||(map[t.player_id]={total:0,byReason:{}});
+    e.total+=t.count; e.byReason[t.reason]=(e.byReason[t.reason]||0)+t.count; });
+  return map;
+}
+function renderTickets(){
+  const s=activeSeason(); const v=$("#view");
+  if(!s){ v.innerHTML=`<div class="empty">还没有赛季</div>`; return; }
+  const totals=ticketTotals(s.id);
+  const rows=DB.players.filter(p=>p.active&&totals[p.id]).sort((a,b)=>totals[b.id].total-totals[a.id].total);
+  const pool=Object.values(totals).reduce((a,e)=>a+e.total,0);
+  const draws=(DB.draws||[]).filter(d=>d.season_id===s.id).slice().reverse();
+  v.innerHTML=`<h2 class="page">🎟️ 赛季抽奖券</h2>
+    <div class="season-card"><div class="sname">🎰 ${esc(s.name)} · 赛季末公开抽奖</div>
+      <div class="smeta">本赛季已发放 <b style="color:var(--gold2)">${pool}</b> 张券 · 券越多，中奖概率越高</div></div>
+    <div class="sect">🏆 奖品</div>
+    ${(DB.prizes||[]).slice(0,3).map(prizeCard).join("")}
+    <div class="sect">📊 券数排行</div>
+    <div class="lb">${rows.length?rows.map((p,i)=>{
+      const t=totals[p.id];
+      const br=Object.entries(t.byReason).map(([rid,c])=>`${reasonOf(rid).icon}×${c}`).join(" ");
+      return `<div class="lb-row" onclick="openTicketSheet('${p.id}')">
+        <div class="rank${i<3?" r"+(i+1):""}">${i+1}</div>
+        <div class="avatar">${avHTML(p)}</div>
+        <div class="pinfo"><div class="pname">${esc(p.name)}</div>
+          <div class="ptitle">${br}</div></div>
+        <div class="pstats"><div class="pts" style="color:var(--gold2)">${t.total}<span style="font-size:12px;color:var(--dim)"> 券</span></div></div>
+        <div class="chev">›</div></div>`;
+    }).join(""):`<div class="empty">还没发过券，今晚开打就有啦 🎰</div>`}</div>
+    ${draws.length?`<div class="sect">🎲 开奖记录</div>`+draws.map(d=>{
+      const p=DB.players.find(x=>x.id===d.winner_pid);
+      return `<div class="kv"><span>🏆 <b>${esc(d.prize)}</b> · ${esc(p?.name||"")} <span style="color:var(--dim);font-size:12px">${esc((d.created_at||"").slice(0,16).replace("T"," "))}</span></span><span style="color:var(--dim);font-size:12px">券池 ${d.pool_size} 张</span></div>`;
+    }).join(""):""}`;
+}
+function openTicketSheet(pid){
+  const s=activeSeason(); const totals=ticketTotals(s.id); const t=totals[pid]; if(!t) return;
+  const p=DB.players.find(x=>x.id===pid);
+  const list=seasonTickets(s.id).filter(x=>x.player_id===pid).sort((a,b)=>a.created_at<b.created_at?-1:1);
+  const gName=gid=>{ const g=DB.games.find(x=>x.id===gid); return g?g.date:"赛季"; };
+  $("#sheetBody").innerHTML=`
+    <div class="hero"><div class="avatar">${avHTML(p)}</div>
+      <h2>${esc(p.name)}</h2><div class="ptitle">🎟️ 抽奖券 × ${t.total}</div></div>
+    <div class="sect">券的来源</div>
+    ${Object.entries(t.byReason).map(([rid,c])=>{const r=reasonOf(rid);
+      return `<div class="kv"><span>${r.icon} ${esc(r.label)}</span><b style="color:var(--gold2)">× ${c}</b></div>`;}).join("")}
+    <div class="sect">发放明细</div>
+    ${list.map(x=>`<div class="kv"><span>${reasonOf(x.reason).icon} ${esc(gName(x.game_id))}${x.note?` · <span style="color:var(--dim)">${esc(x.note)}</span>`:""}</span><b>+${x.count}</b></div>`).join("")}
+    <button class="btn ghost" onclick="closeSheet()">关闭</button>`;
+  $("#sheetMask").classList.add("open"); $("#sheet").classList.add("open");
+}
+function openPlayer(pid){
+  const s=activeSeason(); const {rows}=standings(s.id);
+  const st=rows.find(r=>r.player.id===pid); if(!st) return;
+  const p=st.player, badges=playerBadges(pid);
+  const tk=(ticketTotals(s.id)[pid]||{total:0,byReason:{}});
+  const avg=(st.pts/st.games).toFixed(1);
+  const myGames=DB.games.filter(g=>g.season_id===s.id&&!isLiveGame(g)).sort((a,b)=>a.date<b.date?-1:1)
+    .map(g=>{ const r=gameResults(g).find(x=>x.player_id===pid); return r?{g,r}:null; }).filter(Boolean);
+  $("#sheetBody").innerHTML=`
+    <div class="hero"><div class="avatar">${avHTML(p)}</div>
+      <h2>${esc(p.name)}</h2><div class="ptitle">${esc(p.title||"")}</div>
+      <div><span class="bestrank">赛季排名 #${st.rank}</span></div></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="v g">${st.pts}</div><div class="k">赛季积分</div></div>
+      <div class="stat"><div class="v">${st.games}<span style="font-size:13px;color:var(--dim)"> 场</span></div><div class="k">出勤</div></div>
+      <div class="stat"><div class="v ${st.profit>=0?"g":""}">${fmt$(st.profit)}</div><div class="k">总盈利</div></div>
+      <div class="stat"><div class="v gold">${avg}</div><div class="k">场均积分</div></div>
+      <div class="stat"><div class="v gold">🎟️${tk.total}</div><div class="k">抽奖券</div></div>
+    </div>
+    ${tk.total?`<div class="tierbox"><div class="t">🎟️ 抽奖券 × ${tk.total}</div><div style="margin-top:8px">${Object.entries(tk.byReason).map(([rid,c])=>{const r=reasonOf(rid);return `<div class="kv"><span>${r.icon} ${esc(r.label)}</span><b style="color:var(--gold2)">× ${c}</b></div>`;}).join("")}</div></div>`:""}
+    <div class="tierbox"><div class="t">🏅 徽章 ${badges.length}/${BADGES.length}</div>
+      <div class="progress"><i style="width:${badges.length/BADGES.length*100}%"></i></div></div>
+    <div class="sect" style="margin-top:6px">徽章图鉴</div>
+    <div class="badge-grid">${BADGES.map(b=>{
+      const has=badges.includes(b.id);
+      return `<div class="badge ${b.rarity}${has?"":" locked"}" title="${esc(b.desc)}">
+        <div class="bi">${b.icon}</div><div class="bn">${b.name}<br><span style="color:var(--dim);font-size:10px">${RARITY_TXT[b.rarity]}</span></div></div>`;}).join("")}</div>
+    <div class="sect">近期战绩</div>
+    <div class="gamelog">${myGames.slice(-5).reverse().map(({g,r})=>
+      `<div class="grow"><span>${esc(g.date)} · 第${r.rank}名</span>
+       <span class="gp ${r.profit>=0?"pos":"neg"}">${fmt$(r.profit)} · +${r.pts}分</span></div>`).join("")||'<div class="empty">暂无</div>'}</div>
+    <button class="btn ghost" onclick="closeSheet()">关闭</button>`;
+  $("#sheetMask").classList.add("open"); $("#sheet").classList.add("open");
+}
+function closeSheet(){ $("#sheetMask").classList.remove("open"); $("#sheet").classList.remove("open"); }
+$("#sheetMask").addEventListener("click", closeSheet);
+
+/* ============ 管理后台 ============ */
+let adminAuthed = sessionStorage.getItem("walnut_admin")==="1";
+let adminTab = "entry";
+function renderAdmin(){
+  const v=$("#view");
+  if(!adminAuthed){
+    v.innerHTML=`<h2 class="page">⚙️ 管理后台</h2>
+      <div class="card"><h3>🔐 局头验证</h3>
+      <div class="note">输入管理密码进入（初始密码 walnut888，进去后可改）</div>
+      <label class="f">管理密码</label><input class="f" type="password" id="apw" placeholder="请输入密码">
+      <button class="btn" onclick="doLogin()">进入后台</button></div>`;
+    return;
+  }
+  v.innerHTML=`<h2 class="page">⚙️ 管理后台 <span class="mode-tag ${STORE.mode}">${STORE.mode==="cloud"?"☁️ 云端":"📱 本地"}</span></h2>
+    <div class="tabs">
+      <div class="tab${adminTab==="entry"?" active":""}" onclick="setTab('entry')">📝 战绩录入</div>
+      <div class="tab${adminTab==="tickets"?" active":""}" onclick="setTab('tickets')">🎟️ 抽奖券</div>
+      <div class="tab${adminTab==="credit"?" active":""}" onclick="setTab('credit')">💳 挂账</div>
+      <div class="tab${adminTab==="players"?" active":""}" onclick="setTab('players')">👥 玩家</div>
+      <div class="tab${adminTab==="season"?" active":""}" onclick="setTab('season')">🏁 赛季</div>
+      <div class="tab${adminTab==="setup"?" active":""}" onclick="setTab('setup')">🔧 设置</div>
+    </div><div id="atab"></div>
+    <button class="btn ghost small" onclick="logout()">退出登录</button>`;
+  ({entry:tabEntry, tickets:tabTickets, credit:tabCredit, players:tabPlayers, season:tabSeason, setup:tabSetup})[adminTab]();
+}
+function doLogin(){
+  if($("#apw").value===(DB.settings.adminPw||CONFIG.adminPwDefault)){
+    adminAuthed=true; sessionStorage.setItem("walnut_admin","1"); renderAdmin();
+  } else toast("密码不对");
+}
+function logout(){ adminAuthed=false; sessionStorage.removeItem("walnut_admin"); location.hash="#/"; }
+function setTab(t){ adminTab=t; renderAdmin(); }
+
+/* --- 战绩录入 --- */
+let entryRows=[];
+let deskGameId=null;
+/* 牌桌当前支付渠道：记住上次选择（渠道=挂账时买入自动未结清） */
+let deskChannel="cash";
+try{ const c=localStorage.getItem("walnut_desk_ch"); if(c&&CHANNELS.some(x=>x.id===c)) deskChannel=c; }catch(e){}
+function openDesk(gid){ deskGameId=gid; renderAdmin(); }
+function liveListHTML(){
+  const gs=DB.games.filter(isLiveGame);
+  if(!gs.length) return "";
+  return `<div class="sect">🔴 进行中的场次</div>`+gs.map(g=>{ const es=gameEntries(g.id);
+    return `<div class="live-card"><div class="lt"><span class="live-dot"></span>${esc(g.date)} · ${esc(g.buyin_tier)}局</div>
+    <div class="lm">${es.length} 人参赛 · ${es.filter(entrySettled).length} 人已离场 · 买入总额 $${es.reduce((a,e)=>a+buyinTotal(e),0).toLocaleString()}</div>
+    <button class="btn small" onclick="openDesk('${g.id}')">🎯 打开牌桌录入</button></div>`; }).join("");
+}
+/* 本场结算单：适合截图发群的汇总表（每位玩家 买入/cash out/盈亏 + 渠道分列 + 水费 + 对账差额），纯展示 */
+function statementHTML(g, res){
+  const st=gameStatement(g);
+  const rows=res.map(r=>{ const p=DB.players.find(x=>x.id===r.player_id);
+    const e=DB.entries.find(x=>x.game_id===g.id&&x.player_id===r.player_id);
+    const bi=e&&(e.buyins||[]).length?`$${buyinTotal(e).toLocaleString()}`:"—";
+    const co=e&&entrySettled(e)?`$${(parseFloat(e.cash_out)||0).toLocaleString()}`:"—";
+    return `<div class="kv"><span>${avMini(p)}${esc(p?.name||"")}</span><span style="font-variant-numeric:tabular-nums">买入 ${bi} · 带出 ${co} · <b style="color:${r.profit>=0?"var(--green)":"var(--red)"}">${fmt$(r.profit)}</b></span></div>`; }).join("");
+  const chLines=st.hasBuy
+    ? CHANNELS.map(c=>`<div class="kv"><span>${c.label}买入</span><b>$${(st.byCh[c.id]||0).toLocaleString()}</b></div>`).join("")
+      +`<div class="kv"><span>买入合计</span><b style="color:var(--gold2)">$${st.total.toLocaleString()}</b></div>`
+    : `<div class="kv"><span>渠道买入</span><span style="color:var(--dim)">—（旧方式录入，无买入明细）</span></div>`;
+  return `<div class="stmt"><div class="st">📋 本场结算单 · ${esc(g.date)}（截图发群用）</div>
+    ${rows}${chLines}
+    <div class="kv"><span>本场水费</span><b>$${st.rake.toLocaleString()}</b></div>
+    <div class="kv"><span>对账差额（买入 − 带出 − 水费）</span>${st.diff===null?`<span style="color:var(--dim)">—（无离场记录）</span>`:Math.round(st.diff)===0?`<b style="color:var(--green)">$0 ✅ 对账平</b>`:`<b style="color:#fde68a">${st.diff>0?"+":"−"}$${Math.abs(Math.round(st.diff)).toLocaleString()} ⚠️</b>`}</div>
+  </div>`;
+}
+function historyHTML(){
+  const gs=DB.games.filter(g=>!isLiveGame(g)).sort((a,b)=>a.date<b.date?1:-1);
+  if(!gs.length) return "";
+  return `<div class="sect">🧾 已结束场次（点开看明细）</div>`+gs.map(g=>{
+    const res=gameResults(g); const champ=res[0];
+    const cp=champ?DB.players.find(p=>p.id===champ.player_id):null;
+    return `<details class="legacy"><summary>${esc(g.date)} · ${esc(g.buyin_tier)}局 · ${res.length} 人 · 冠军 ${esc(cp?.name||"")} ${champ?fmt$(champ.profit):""}</summary>
+    <div class="card" style="margin-top:8px">${res.map(r=>{ const p=DB.players.find(x=>x.id===r.player_id);
+      const e=DB.entries.find(x=>x.game_id===g.id&&x.player_id===r.player_id);
+      const bi=e&&e.buyins?` · 买入 $${buyinTotal(e).toLocaleString()}`:"";
+      return `<div class="kv"><span>第 ${r.rank} 名 · ${avMini(p)}${esc(p?.name||"")}</span><b><span style="color:${r.profit>=0?"var(--green)":"var(--red)"}">${fmt$(r.profit)}</span> · +${r.pts} 分${bi}</b></div>`; }).join("")}${statementHTML(g,res)}</div></details>`; }).join("");
+}
+function tabEntry(){
+  const s=activeSeason();
+  const tiers=Object.keys(DB.settings.buyinMult||{"标准":1});
+  const players=DB.players.filter(p=>p.active);
+  $("#atab").innerHTML=`
+    ${liveListHTML()}
+    <div id="desk"></div>
+    <div class="card"><h3>➕ 开新场次（实时录入）</h3>
+    <label class="f">赛季</label><select class="f" id="nSeason">${DB.seasons.map(x=>`<option value="${x.id}"${x.id===s?.id?" selected":""}>${esc(x.name)}</option>`).join("")}</select>
+    <label class="f">日期</label><input class="f" type="date" id="nDate" value="${todayStr()}">
+    <label class="f">买入档</label><select class="f" id="nTier">${tiers.map(t=>`<option>${esc(t)}</option>`).join("")}</select>
+    <label class="f">入座玩家（多选）</label>
+    <div id="nPlayers" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
+      ${players.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:14px"><input type="checkbox" value="${p.id}"> ${avMini(p)}${esc(p.name)}</label>`).join("")}</div>
+    <button class="btn" onclick="startLiveGame()">🔴 开局（进行中）</button>
+    <div class="note">开局后在上方牌桌里实时记买入和离场；玩家在「今晚」页能实时看到买入与临时排名。</div></div>
+    ${historyHTML()}
+    <details class="legacy"><summary>⌨️ 补录已结束场次（直接录盈亏 · 旧方式）</summary>
+    <div class="card"><h3>📝 录入一场战绩</h3>
+    <label class="f">赛季</label><select class="f" id="eSeason">${DB.seasons.map(x=>`<option value="${x.id}"${x.id===s?.id?" selected":""}>${esc(x.name)}</option>`).join("")}</select>
+    <label class="f">日期</label><input class="f" type="date" id="eDate" value="${todayStr()}">
+    <label class="f">买入档</label><select class="f" id="eTier">${tiers.map(t=>`<option>${esc(t)}</option>`).join("")}</select>
+    <label class="f">选手与盈利（输赢金额，可负）</label><div id="eRows"></div>
+    <button class="btn ghost small" onclick="addEntryRow()">＋ 添加选手</button>
+    <div id="ePrev" style="margin-top:12px"></div>
+    <button class="btn" onclick="saveGame()">💾 保存本场</button>
+    <div class="note">保存后自动计算积分、更新排名并颁发徽章。盈利按从大到小排名，冠军得参赛人数分＋出勤分，乘以买入系数。</div></div></details>`;
+  entryRows=[];
+  const act=DB.players.filter(p=>p.active);
+  for(let i=0;i<Math.min(6,act.length);i++) addEntryRow(act[i]?.id);
+  updateEntryPreview();
+  renderDesk();
+}
+/* --- 实时牌桌 --- */
+async function saveEntryRow(e){ await dbPut("entries",e).catch(()=>{}); await persist(); }
+async function saveGameRow(g){ await dbPut("games",g).catch(()=>{}); await persist(); }
+async function startLiveGame(){
+  const seasonId=$("#nSeason").value, date=$("#nDate").value||todayStr(), tier=$("#nTier").value;
+  const pids=[...document.querySelectorAll("#nPlayers input:checked")].map(c=>c.value);
+  if(pids.length<2){ toast("至少选 2 位玩家入座"); return; }
+  const exist=liveGameOf(seasonId);
+  if(exist){ toast("本赛季已有一场进行中，先结束它"); deskGameId=exist.id; renderAdmin(); return; }
+  const g=newLiveGame(seasonId,date,tier,pids);
+  await saveGameRow(g);
+  for(const e of gameEntries(g.id)) await dbPut("entries",e).catch(()=>{});
+  await persist();
+  deskGameId=g.id; toast("🔴 开局！开始实时记录买入"); renderAdmin();
+}
+function renderDesk(){
+  const box=$("#desk"); if(!box) return;
+  const g=DB.games.find(x=>x.id===deskGameId);
+  if(!g||!isLiveGame(g)){ box.innerHTML=""; return; }
+  const es=gameEntries(g.id);
+  const settledN=es.filter(entrySettled).length;
+  const totalBuy=es.reduce((a,e)=>a+buyinTotal(e),0);
+  const settledOut=es.filter(entrySettled).reduce((a,e)=>a+(parseFloat(e.cash_out)||0),0);
+  const diff=balanceDiff(g), dRound=Math.round(diff);
+  const prow=pid=>DB.players.find(x=>x.id===pid)||{name:"?",avatar:"🃏"};
+  const limit=DB.settings.creditLimit??3000;
+  const rows=es.map(e=>{ const p=prow(e.player_id); const settled=entrySettled(e); const pf=liveProfit(e);
+    const uc=unpaidCredit(e.player_id);
+    return `<div class="desk-row">
+      <div class="dh"><div class="avatar">${avHTML(p)}</div>
+        <div style="flex:1;min-width:0"><b>${esc(p.name)}</b> ${settled?'<span class="pill off">已离场</span>':'<span class="pill on">在桌</span>'}
+        ${uc>0?`<div class="credit-warn">💳 挂账未结 $${uc.toLocaleString()}${uc>=limit?` · ⚠️ 挂账已达上限（$${limit.toLocaleString()}）`:""}</div>`:""}</div>
+        <button class="rm" title="移出本场" onclick="deskRemovePlayer('${e.id}')">×</button></div>
+      <div class="chips">${(e.buyins||[]).length?(e.buyins||[]).map((b,i)=>`<span class="chip${buyinCh(b)==="credit"?" credit":""}" onclick="deskRemoveBuyin('${e.id}',${i})">+$${buyinAmt(b).toLocaleString()} ${chOf(buyinCh(b)).short}${buyinCh(b)==="credit"&&!buyinPaid(b)?" · 未结":""} ×</span>`).join(""):'<span style="color:var(--dim);font-size:13px">还没买入</span>'}</div>
+      <div style="display:flex;gap:6px;margin:8px 0">
+        <button class="qb" onclick="deskAddBuyin('${e.id}',100)">+100</button>
+        <button class="qb" onclick="deskAddBuyin('${e.id}',200)">+200</button>
+        <button class="qb" onclick="deskAddBuyin('${e.id}',500)">+500</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input class="f" type="number" id="cb_${e.id}" placeholder="自定义买入 $" style="flex:1">
+        <button class="btn ghost small" style="width:auto;margin:0;padding:10px 14px" onclick="deskAddCustom('${e.id}')">＋买入</button>
+      </div>
+      <div class="kv"><span>总买入</span><b style="color:var(--gold2)">$${buyinTotal(e).toLocaleString()}</b></div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+        <input class="f" type="number" id="co_${e.id}" placeholder="离场 cash out $（输光填 0）" value="${settled?e.cash_out:""}" style="flex:1">
+        <button class="btn ghost small" style="width:auto;margin:0;padding:10px 14px" onclick="deskSetCashOut('${e.id}')">${settled?"更新":"离场结算"}</button>
+        ${settled?`<button class="btn ghost small" style="width:auto;margin:0;padding:10px 14px" onclick="deskClearCashOut('${e.id}')">回桌</button>`:""}
+      </div>
+      ${settled?`<div class="kv"><span>盈亏</span><b style="color:${pf>=0?"var(--green)":"var(--red)"}">${fmt$(pf)}</b></div>`:""}
+    </div>`; }).join("");
+  const notSeated=DB.players.filter(p=>p.active&&!es.some(e=>e.player_id===p.id));
+  box.innerHTML=`<div class="card" style="border-color:rgba(248,113,113,.5)">
+    <h3><span class="live-dot"></span>牌桌 · ${esc(g.date)} · ${esc(g.buyin_tier)}局</h3>
+    <div class="note" style="margin:0 0 6px">先选支付渠道再点金额记买入（点小票可撤销那一笔）；玩家离场时填 cash out 点「离场结算」。结束后本场锁定，不能再改流水。</div>
+    <div class="chbar">${CHANNELS.map(c=>`<button class="chbtn${deskChannel===c.id?" on":""}" onclick="deskSetChannel('${c.id}')">${c.label}</button>`).join("")}</div>
+    <div class="note" style="margin:0 0 8px">当前渠道：<b style="color:var(--gold2)">${chOf(deskChannel).label}</b>${deskChannel==="credit"?" · 挂账买入会自动进入「未结清」，在后台「💳 挂账」页可结清":""}</div>
+    ${rows}
+    ${notSeated.length?`<div style="display:flex;gap:6px;align-items:center;margin-top:4px">
+      <select class="f" id="deskAddSel" style="flex:1">${notSeated.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select>
+      <button class="btn ghost small" style="width:auto;margin:0;padding:11px 14px" onclick="deskAddPlayer('${g.id}')">＋ 迟到入座</button></div>`:""}
+    <div class="sect" style="margin:16px 0 6px">🎉 玩法记录</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <select class="f" id="playType" style="flex:1">${PLAY_TYPES.map(t=>`<option value="${t.id}">${t.icon} ${t.label}</option>`).join("")}</select>
+      <select class="f" id="playPlayer" style="flex:1">${es.map(e=>`<option value="${e.player_id}">${esc(prow(e.player_id).name)}</option>`).join("")}</select>
+      <button class="btn ghost small" style="width:auto;margin:0;padding:11px 14px" onclick="deskAddPlay('${g.id}')">＋ 记一条</button>
+    </div>
+    ${(g.plays||[]).length?`<div style="margin-top:6px">${(g.plays||[]).map(pl=>{ const t=playOf(pl.type);
+      return `<div class="playrow"><span>${t.icon} ${esc(prow(pl.player_id).name)} · ${esc(t.label)}</span><span style="margin-left:auto;color:var(--dim);font-size:12px">${esc((pl.at||"").slice(11,16))}</span></div>`; }).join("")}
+      <button class="btn ghost small" onclick="deskUndoPlay('${g.id}')">↩️ 撤销最近一条</button></div>`
+    :`<div class="note">还没有玩法记录。炸弹 / 同花顺 / 皇家同花顺会在结算时自动发券（炸弹 2 张、同花顺 4 张），鱿鱼只记录展示、会出现在玩家端「今晚」动态里。</div>`}
+    <div style="display:flex;gap:6px;align-items:center;margin-top:16px">
+      <span style="font-size:14px;white-space:nowrap">💧 本场水费 $</span>
+      <input class="f" type="number" id="gRake" value="${parseFloat(g.rake)||0}" style="flex:1">
+      <button class="btn ghost small" style="width:auto;margin:0;padding:10px 14px" onclick="deskSetRake('${g.id}')">保存水费</button>
+    </div>
+    <div class="kv"><span>全部买入</span><b>$${totalBuy.toLocaleString()}</b></div>
+    <div class="kv"><span>已离场带出（${settledN} 人）</span><b>$${settledOut.toLocaleString()}</b></div>
+    ${dRound===0
+      ? `<div class="okbox">✅ 对账平：全部买入 − 已离场带出 − 本场水费 = $0</div>`
+      : `<div class="warnbox">⚠️ 对账差额 <b>${diff>0?"+":"−"}$${Math.abs(dRound).toLocaleString()}</b>（全部买入 − 已离场带出 − 本场水费）。口径：在桌玩家尚未离场、筹码还在桌上，不计入带出，差额要等全员离场后才应为 0；全员离场后仍不为 0，多半是买入或离场金额漏记/错记，请核对（仅提醒，不阻止结算）。</div>`}
+    <button class="btn" onclick="finishLiveGame('${g.id}')">🏁 结束本场并结算积分</button>
+    <button class="btn ghost small" onclick="deskGameId=null;renderDesk()">收起牌桌</button>
+  </div>`;
+}
+function deskSetChannel(ch){ deskChannel=chOf(ch).id; try{ localStorage.setItem("walnut_desk_ch",deskChannel); }catch(e){} renderDesk(); }
+async function deskSetRake(gid){
+  const g=DB.games.find(x=>x.id===gid); if(!g) return;
+  g.rake=parseFloat($("#gRake")?.value)||0;
+  await saveGameRow(g); renderDesk(); toast(`本场水费已设为 $${g.rake.toLocaleString()}`);
+}
+async function deskAddPlay(gid){
+  const g=DB.games.find(x=>x.id===gid); if(!g||!isLiveGame(g)) return;
+  const pid=$("#playPlayer")?.value, type=$("#playType")?.value;
+  if(!pid||!type){ toast("先选类型和玩家"); return; }
+  g.plays=g.plays||[];
+  g.plays.push({id:uid(), type, player_id:pid, at:new Date().toISOString()});
+  await saveGameRow(g); renderDesk(); toast("🎉 玩法已记录");
+}
+async function deskUndoPlay(gid){
+  const g=DB.games.find(x=>x.id===gid); if(!g||!(g.plays||[]).length) return;
+  g.plays.pop(); await saveGameRow(g); renderDesk(); toast("已撤销最近一条玩法记录");
+}
+/* 结算联动：按玩法记录自动发券（走既有发券规则与券池） */
+async function grantPlayTickets(game){
+  const grants=playTicketGrants(game);
+  for(const gr of grants){
+    const t={id:uid(), player_id:gr.player_id, season_id:game.season_id, game_id:game.id, reason:gr.reason, count:gr.count, note:"玩法记录 · 结算自动发券", drawn:false, created_at:new Date().toISOString()};
+    DB.tickets=DB.tickets||[]; DB.tickets.push(t); await dbPut("tickets",t).catch(()=>{});
+  }
+  return grants;
+}
+async function deskAddBuyin(eid,amt){
+  const e=DB.entries.find(x=>x.id===eid); if(!e) return;
+  applyBuyin(e,amt,deskChannel); await saveEntryRow(e); renderDesk();
+}
+async function deskAddCustom(eid){
+  const v=parseFloat($("#cb_"+eid)?.value);
+  if(!v||v<=0){ toast("先填买入金额"); return; }
+  await deskAddBuyin(eid,v);
+}
+async function deskRemoveBuyin(eid,idx){
+  const e=DB.entries.find(x=>x.id===eid); if(!e||!e.buyins) return;
+  e.buyins.splice(idx,1); await saveEntryRow(e); renderDesk();
+}
+async function deskSetCashOut(eid){
+  const e=DB.entries.find(x=>x.id===eid); if(!e) return;
+  const raw=$("#co_"+eid)?.value;
+  if(raw===""||raw===null||raw===undefined){ toast("先填离场金额（输光填 0）"); return; }
+  e.cash_out=parseFloat(raw)||0; await saveEntryRow(e); renderDesk(); toast("已离场结算");
+}
+async function deskClearCashOut(eid){
+  const e=DB.entries.find(x=>x.id===eid); if(!e) return;
+  e.cash_out=null; await saveEntryRow(e); renderDesk();
+}
+async function deskRemovePlayer(eid){
+  const e=DB.entries.find(x=>x.id===eid); if(!e) return;
+  const p=DB.players.find(x=>x.id===e.player_id);
+  if(!confirm(`把 ${p?.name||""} 移出本场？其买入流水会一并删除`)) return;
+  DB.entries=DB.entries.filter(x=>x.id!==eid);
+  await dbDel("entries",eid).catch(()=>{}); await persist(); renderDesk();
+}
+async function deskAddPlayer(gid){
+  const pid=$("#deskAddSel")?.value; if(!pid) return;
+  const e={id:uid(), game_id:gid, player_id:pid, profit:0, buyins:[], cash_out:null};
+  DB.entries.push(e); await saveEntryRow(e); renderDesk();
+}
+async function finishLiveGame(gid){
+  const g=DB.games.find(x=>x.id===gid); if(!g||!isLiveGame(g)) return;
+  const es=gameEntries(g.id);
+  /* 对账差额 ≠ 0 先弹确认（写明差额），不硬锁 */
+  const diff=balanceDiff(g);
+  if(Math.round(diff)!==0){
+    if(!confirm(`⚠️ 对账差额 ${diff>0?"+":"−"}$${Math.abs(Math.round(diff)).toLocaleString()}（全部买入 − 已离场带出 − 本场水费 $${(parseFloat(g.rake)||0).toLocaleString()}），不为 0。\n多半是买入或离场金额漏记/错记。仍要结束本场并结算吗？`)) return;
+  }
+  const unset=es.filter(e=>!entrySettled(e));
+  if(unset.length){
+    const names=unset.map(e=>DB.players.find(p=>p.id===e.player_id)?.name||"?").join("、");
+    if(!confirm(`还有 ${unset.length} 人没填 cash out：${names}。未填的一律按 0（输光离场）结算，确定结束本场？`)) return;
+  }
+  const res=settleGame(g);
+  await saveGameRow(g);
+  for(const e of es) await saveEntryRow(e);
+  const grants=await grantPlayTickets(g);
+  const newly=checkBadges(g.season_id,g); await persist();
+  deskGameId=null;
+  const champ=DB.players.find(p=>p.id===res[0]?.player_id);
+  const tkN=grants.reduce((a,x)=>a+x.count,0);
+  toast(`🏁 本场已结算！冠军 ${champ?.name||""}${tkN?` · 🎟️ 玩法自动发券 ${tkN} 张`:""}${newly.length?` · 🏅 新徽章 ×${newly.length}`:""}`);
+  renderAdmin();
+}
+function addEntryRow(pid){
+  const id=uid(); entryRows.push(id);
+  const opts=DB.players.filter(p=>p.active).map(p=>`<option value="${p.id}"${p.id===pid?" selected":""}>${esc(p.name)}</option>`).join("");
+  const div=document.createElement("div");
+  div.className="entry-row"; div.id="er_"+id;
+  div.innerHTML=`<select class="f" onchange="updateEntryPreview()">${opts}</select>
+    <input class="f" type="number" placeholder="盈利 $" oninput="updateEntryPreview()">
+    <button class="rm" onclick="delEntryRow('${id}')">×</button>`;
+  $("#eRows").appendChild(div); updateEntryPreview();
+}
+function delEntryRow(id){ entryRows=entryRows.filter(x=>x!==id); $("#er_"+id)?.remove(); updateEntryPreview(); }
+function readEntryRows(){
+  return entryRows.map(id=>{
+    const row=$("#er_"+id); if(!row) return null;
+    const pid=row.querySelector("select").value, profit=parseFloat(row.querySelector("input").value);
+    return {player_id:pid, profit:isNaN(profit)?0:profit};
+  }).filter(Boolean);
+}
+function updateEntryPreview(){
+  const rows=readEntryRows(); if(!rows.length){ $("#ePrev").innerHTML=""; return; }
+  const tier=$("#eTier")?.value||"标准";
+  const mult=(DB.settings.buyinMult||{})[tier]||1, att=DB.settings.attendancePts??1;
+  const sorted=[...rows].sort((a,b)=>b.profit-a.profit); const n=sorted.length;
+  let lastP=null,rank=0;
+  const html=sorted.map((r,i)=>{ if(r.profit!==lastP){rank=i+1;lastP=r.profit;}
+    const p=DB.players.find(x=>x.id===r.player_id);
+    const pts=Math.round((att+Math.max(n-rank+1,0))*mult);
+    return `<div class="kv"><span>第 ${rank} 名 · ${esc(p?.name||"")}</span><b style="color:var(--green)">+${pts} 分</b></div>`;
+  }).join("");
+  $("#ePrev").innerHTML=`<div class="card" style="margin:0"><h3>👁 积分预览</h3>${html}</div>`;
+}
+async function saveGame(){
+  const seasonId=$("#eSeason").value, date=$("#eDate").value||todayStr(), tier=$("#eTier").value;
+  const rows=readEntryRows().filter(r=>r.player_id);
+  if(rows.length<2){ toast("至少录入 2 位选手"); return; }
+  const g={id:uid(), season_id:seasonId, date, buyin_tier:tier};
+  DB.games.push(g); await dbPut("games",g);
+  for(const r of rows){ const e={id:uid(), game_id:g.id, player_id:r.player_id, profit:r.profit};
+    DB.entries.push(e); await dbPut("entries",e); }
+  await persist();
+  const newly=checkBadges(seasonId,g); await persist();
+  toast(`已保存！${newly.length?`🏅 新徽章 ×${newly.length}`:""}`);
+  tabEntry();
+}
+
+/* --- 挂账管理 --- */
+function tabCredit(){
+  const rows=creditRows();
+  const limit=DB.settings.creditLimit??3000;
+  const totN=rows.reduce((a,r)=>a+r.count,0), tot$=rows.reduce((a,r)=>a+r.total,0);
+  $("#atab").innerHTML=`<div class="card"><h3>💳 未结挂账</h3>
+    <div class="note" style="margin:0 0 8px">买入时渠道选「挂账」的笔数会自动挂在这里（跨场次累计）。玩家还清后点「全部结清」即可，流水保留不删。当前 Credit 上限 $${limit.toLocaleString()}（在「设置」里可改）。</div>
+    ${rows.length?rows.map(r=>`<div class="kv"><span>${avMini(r.player)} <b>${esc(r.player.name)}</b> <span style="color:var(--dim);font-size:12px">${r.count} 笔未结${r.total>=limit?' · <span style="color:#fde68a">已达上限</span>':""}</span></span>
+      <span><b style="color:#fde68a">$${r.total.toLocaleString()}</b>
+      <button class="btn ghost small" style="display:inline-block;width:auto;margin:0 0 0 8px;padding:6px 12px" onclick="settleCredit('${r.player.id}')">全部结清</button></span></div>`).join("")
+      +`<div class="kv"><span><b>合计</b></span><b>${totN} 笔 · $${tot$.toLocaleString()}</b></div>`
+    :`<div class="empty">🎉 没有未结挂账</div>`}
+  </div>`;
+}
+async function settleCredit(pid){
+  const p=DB.players.find(x=>x.id===pid); if(!p) return;
+  if(!confirm(`确认 ${p.name} 的挂账已全部结清？（只改状态，流水保留）`)) return;
+  let n=0;
+  for(const e of DB.entries.filter(x=>x.player_id===pid)){
+    let ch=false;
+    (e.buyins||[]).forEach(b=>{ if(b&&typeof b==="object"&&b.ch==="credit"&&b.paid===false){ b.paid=true; ch=true; n++; } });
+    if(ch) await saveEntryRow(e);
+  }
+  await persist(); toast(n?`✅ ${p.name} 的 ${n} 笔挂账已结清`:"没有未结挂账"); tabCredit();
+}
+
+/* --- 玩家管理 --- */
+let pendingImg=null;
+function tabPlayers(){
+  const av=["♠️","♥️","♣️","♦️","🐉","🔥","💎","🌸","🍵","🐱","🦊","🐼","👑","⚡","🌙","❄️"];
+  pendingImg=null;
+  $("#atab").innerHTML=`<div class="card"><h3>➕ 添加玩家</h3>
+    <label class="f">名字</label><input class="f" id="pName" placeholder="如：阿K">
+    <label class="f">头像（emoji）</label><select class="f" id="pAvatar">${av.map(a=>`<option>${a}</option>`).join("")}</select>
+    <label class="f">头像照片（可选，上传后优先显示照片）</label>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="pImgPrev"></span>
+      <button class="btn ghost small" style="width:auto;margin:0;padding:9px 14px" onclick="document.getElementById('pImgFile').click()">📷 选照片</button>
+      <input type="file" id="pImgFile" accept="image/*" style="display:none" onchange="onNewAvatarFile(this)">
+    </div>
+    <label class="f">称号（可选）</label><input class="f" id="pTitle" placeholder="如：冷面杀手">
+    <label class="f">推荐人（可选）</label><select class="f" id="pRef"><option value="">无</option>${DB.players.filter(p=>p.active).map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select>
+    <button class="btn" onclick="addPlayer()">添加</button></div>
+    <div class="sect">现有玩家</div>
+    ${DB.players.map(p=>`<div class="kv"><span>${avMini(p)} <b>${esc(p.name)}</b> <span style="color:var(--dim);font-size:12px">${esc(p.title||"")}</span></span>
+      <span><input type="file" id="avf_${p.id}" accept="image/*" style="display:none" onchange="onAvatarFile(this,'${p.id}')">
+      <button class="btn ghost small" style="display:inline-block;width:auto;margin:0 6px 0 0;padding:6px 12px" onclick="document.getElementById('avf_${p.id}').click()">📷 头像</button>${p.img?`<button class="btn ghost small" style="display:inline-block;width:auto;margin:0 6px 0 0;padding:6px 12px" onclick="clearAvatar('${p.id}')">清除照片</button>`:""}
+      <button class="btn ghost small" style="display:inline-block;width:auto;margin:0 6px 0 0;padding:6px 12px" onclick="manualBadge('${p.id}')">🏅 颁徽章</button>
+      <button class="btn ghost small" style="display:inline-block;width:auto;margin:0;padding:6px 12px" onclick="togglePlayer('${p.id}')">${p.active?"停用":"启用"}</button></span></div>`).join("")}`;
+}
+function compressAvatar(file, cb){
+  if(!file){ cb(null); return; }
+  const url=URL.createObjectURL(file); const img=new Image();
+  img.onload=()=>{ try{
+      const S=128, c=document.createElement("canvas"); c.width=S; c.height=S;
+      const x=c.getContext("2d"); const sc=Math.max(S/img.width,S/img.height);
+      const w=img.width*sc, h=img.height*sc;
+      x.drawImage(img,(S-w)/2,(S-h)/2,w,h);
+      URL.revokeObjectURL(url); cb(c.toDataURL("image/jpeg",0.85));
+    }catch(e){ cb(null); } };
+  img.onerror=()=>{ URL.revokeObjectURL(url); cb(null); };
+  img.src=url;
+}
+function onNewAvatarFile(input){
+  compressAvatar(input.files&&input.files[0], url=>{
+    if(url){ pendingImg=url; const pv=$("#pImgPrev"); if(pv) pv.innerHTML=`<img class="avmini" style="width:38px;height:38px" src="${url}">`; toast("照片已选，添加后生效"); }
+    else toast("这张图读不了，换一张试试");
+    input.value="";
+  });
+}
+async function onAvatarFile(input, pid){
+  const f=input.files&&input.files[0]; input.value="";
+  compressAvatar(f, async url=>{
+    if(!url){ toast("这张图读不了，换一张试试"); return; }
+    const p=DB.players.find(x=>x.id===pid); if(!p) return;
+    p.img=url; await dbPut("players",p).catch(()=>{}); await persist();
+    toast(`${p.name} 的头像已更新`); tabPlayers();
+  });
+}
+async function clearAvatar(pid){
+  const p=DB.players.find(x=>x.id===pid); if(!p) return;
+  p.img=null; await dbPut("players",p).catch(()=>{}); await persist();
+  toast("已恢复默认头像"); tabPlayers();
+}
+async function addPlayer(){
+  const name=$("#pName").value.trim(); if(!name){ toast("填个名字"); return; }
+  const p={id:uid(), name, avatar:$("#pAvatar").value, img:pendingImg||null, title:$("#pTitle").value.trim(), referrer_id:$("#pRef").value||null, active:true};
+  DB.players.push(p); await dbPut("players",p); await persist(); toast(`欢迎 ${name} 加入！`);
+  checkBadges(activeSeason()?.id); await persist(); tabPlayers();
+}
+async function togglePlayer(pid){ const p=DB.players.find(x=>x.id===pid); p.active=!p.active; await dbPut("players",p); await persist(); tabPlayers(); }
+async function manualBadge(pid){
+  const b=BADGES.find(x=>x.id==="comeback");
+  if(awardBadge(pid,"comeback",null)){ await persist(); toast("⚡ 绝地反击 已颁发！"); } else toast("已经有了");
+}
+
+/* --- 赛季管理 --- */
+function tabSeason(){
+  $("#atab").innerHTML=`<div class="card"><h3>➕ 新赛季</h3>
+    <label class="f">赛季名</label><input class="f" id="sName" placeholder="如：OMT战队第二赛季">
+    <label class="f">场次</label><input class="f" id="sCount" type="number" value="12">
+    <label class="f">开始日期</label><input class="f" id="sStart" type="date">
+    <label class="f">结束日期</label><input class="f" id="sEnd" type="date">
+    <button class="btn" onclick="addSeason()">创建并设为当前赛季</button></div>
+    <div class="sect">赛季列表</div>
+    ${DB.seasons.map(s=>{ const g=DB.games.filter(x=>x.season_id===s.id&&!isLiveGame(x)).length;
+      return `<div class="kv"><span><b>${esc(s.name)}</b> <span style="color:var(--dim);font-size:12px">${s.start_date?esc(s.start_date)+" 至 "+esc(s.end_date||"")+" · ":""}${g}/${s.games_count} 场${s.status==="active"?' · <span style="color:var(--green)">进行中</span>':""}</span></span>
+      ${s.status!=="active"?`<button class="btn ghost small" style="width:auto;margin:0;padding:6px 12px" onclick="setActiveSeason('${s.id}')">设为当前</button>`:""}</div>`;}).join("")}`;
+}
+async function addSeason(){
+  const name=$("#sName").value.trim()||`OMT战队新赛季`;
+  const count=parseInt($("#sCount").value)||12;
+  DB.seasons.forEach(s=>s.status="closed");
+  const s={id:uid(), name, games_count:count, status:"active", start_date:$("#sStart").value||"", end_date:$("#sEnd").value||""};
+  DB.seasons.push(s); for(const x of DB.seasons) await dbPut("seasons",x);
+  await persist(); toast(`新赛季 ${name} 开始！`); tabSeason();
+}
+async function setActiveSeason(id){
+  DB.seasons.forEach(s=>s.status=s.id===id?"active":"closed");
+  for(const x of DB.seasons) await dbPut("seasons",x);
+  await persist(); location.hash="#/"; location.reload();
+}
+
+/* --- 设置 --- */
+function tabSetup(){
+  const st=DB.settings;
+  $("#atab").innerHTML=`<div class="card"><h3>🔧 积分规则</h3>
+    <label class="f">出勤分（每场保底）</label><input class="f" id="setAtt" type="number" value="${st.attendancePts??1}">
+    <label class="f">买入系数（档:系数）</label><input class="f" id="setMult" value='${esc(Object.entries(st.buyinMult||{}).map(([k,v])=>k+":"+v).join(", "))}' placeholder="标准:1, 深筹:1.5, 豪客:2">
+    <label class="f">巨鲸线（单场盈利≥此数得徽章 $）</label><input class="f" id="setWhale" type="number" value="${st.whaleLine||800}">
+    <label class="f">Credit 挂账上限（未结挂账达到此数时牌桌提醒 $）</label><input class="f" id="setCredit" type="number" value="${st.creditLimit??3000}">
+    <button class="btn" onclick="saveSettings()">保存规则</button></div>
+  <div class="card"><h3>🔐 管理密码</h3>
+    <label class="f">新密码</label><input class="f" id="setPw" type="password" placeholder="留空不改">
+    <button class="btn" onclick="savePw()">更新密码</button></div>
+  <div class="card"><h3>☁️ 云端同步（Supabase）</h3>
+    <div class="note">上线用：去 supabase.com 免费建项目，把 URL 和 anon key 填进来，你录的数据就实时同步到所有玩家手机。现在不填就是本机演示模式。</div>
+    <label class="f">Supabase URL</label><input class="f" id="sbUrl" value="${esc(localStorage.getItem("walnut_s4_sb_url")||"")}" placeholder="https://xxx.supabase.co">
+    <label class="f">Anon Key</label><input class="f" id="sbKey" value="${esc(localStorage.getItem("walnut_s4_sb_key")||"")}" placeholder="eyJ...">
+    <button class="btn" onclick="saveSupa()">连接云端</button>
+    <button class="btn ghost" onclick="exportSQL()">📄 复制建表 SQL</button></div>
+  <div class="card"><h3>💾 数据</h3>
+    <button class="btn ghost" onclick="exportJSON()">导出备份 (JSON)</button>
+    <button class="btn danger" onclick="if(confirm('清空所有数据并恢复演示？')){localStorage.removeItem('walnut_s4_db');location.reload();}">恢复演示数据</button></div>`;
+}
+async function saveSettings(){
+  const mult={}; $("#setMult").value.split(",").forEach(p=>{ const [k,v]=p.split(":").map(s=>s.trim()); if(k&&v) mult[k]=parseFloat(v)||1; });
+  DB.settings.attendancePts=parseInt($("#setAtt").value)||1;
+  DB.settings.buyinMult=mult; DB.settings.whaleLine=parseInt($("#setWhale").value)||800;
+  DB.settings.creditLimit=parseInt($("#setCredit")?.value); if(isNaN(DB.settings.creditLimit)||DB.settings.creditLimit<0) DB.settings.creditLimit=3000;
+  await dbPut("settings",{key:"_bundle",value:DB.settings}).catch(()=>{});
+  if(STORE.mode==="cloud") for(const [k,v] of Object.entries(DB.settings)) await supa.from("settings").upsert({key:k,value:v});
+  await persist(); toast("规则已保存");
+}
+async function savePw(){ const v=$("#setPw").value.trim(); if(!v) return;
+  DB.settings.adminPw=v; await persist();
+  if(STORE.mode==="cloud") await supa.from("settings").upsert({key:"adminPw",value:v});
+  toast("密码已更新"); }
+async function saveSupa(){
+  localStorage.setItem("walnut_s4_sb_url",$("#sbUrl").value.trim());
+  localStorage.setItem("walnut_s4_sb_key",$("#sbKey").value.trim());
+  location.reload();
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="walnut-s4-backup.json"; a.click(); toast("已导出");
+}
+function exportSQL(){
+  const sql=`-- 在 Supabase SQL Editor 里运行一次\ncreate table if not exists players(id text primary key,name text,avatar text,img text,title text,referrer_id text,active boolean);\ncreate table if not exists seasons(id text primary key,name text,games_count int,status text,start_date date,end_date date);\ncreate table if not exists games(id text primary key,season_id text,date date,buyin_tier text,status text,rake numeric,plays jsonb);\nalter table games add column if not exists rake numeric;\nalter table games add column if not exists plays jsonb;\ncreate table if not exists entries(id text primary key,game_id text,player_id text,profit numeric,buyins jsonb,cash_out numeric);\ncreate table if not exists player_badges(player_id text,badge_id text,game_id text,awarded_at timestamptz,primary key(player_id,badge_id));\ncreate table if not exists tickets(id text primary key,season_id text,game_id text,player_id text,reason text,count int,note text,drawn boolean,created_at timestamptz);\ncreate table if not exists draws(id text primary key,season_id text,prize text,winner_pid text,ticket_id text,pool_size int,seed text,created_at timestamptz);\ncreate table if not exists settings(key text primary key,value jsonb);\nalter table players enable row level security;alter table seasons enable row level security;alter table games enable row level security;alter table entries enable row level security;alter table player_badges enable row level security;alter table settings enable row level security;\ncreate policy "open" on players for all using(true) with check(true);\ncreate policy "open" on seasons for all using(true) with check(true);\ncreate policy "open" on games for all using(true) with check(true);\ncreate policy "open" on entries for all using(true) with check(true);\ncreate policy "open" on player_badges for all using(true) with check(true);\ncreate policy "open" on tickets for all using(true) with check(true);\ncreate policy "open" on draws for all using(true) with check(true);\ncreate policy "open" on settings for all using(true) with check(true);`;
+  navigator.clipboard.writeText(sql).then(()=>toast("建表 SQL 已复制")).catch(()=>prompt("复制这段 SQL:",sql));
+}
+
+/* --- 抽奖券管理 --- */
+function tabTickets(){
+  const s=activeSeason(); if(!s){ $("#atab").innerHTML=`<div class="empty">还没有赛季</div>`; return; }
+  const totals=ticketTotals(s.id);
+  const games=DB.games.filter(g=>g.season_id===s.id).sort((a,b)=>a.date<b.date?-1:1);
+  const players=DB.players.filter(p=>p.active);
+  const ledger=seasonTickets(s.id).slice().sort((a,b)=>a.created_at<b.created_at?1:-1);
+  const pName=pid=>esc(DB.players.find(p=>p.id===pid)?.name||"?");
+  const poolTotal=Object.values(totals).reduce((a,e)=>a+e.total,0);
+  $("#atab").innerHTML=`
+  <div class="card"><h3>➕ 发券</h3>
+    <label class="f">玩家（多选）</label>
+    <div id="tkPlayers" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      ${players.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:14px"><input type="checkbox" value="${p.id}"> ${avMini(p)}${esc(p.name)}</label>`).join("")}</div>
+    <label class="f">理由</label><select class="f" id="tkReason" onchange="tkReasonChg()">${TICKET_REASONS.map(r=>`<option value="${r.id}">${r.icon} ${esc(r.label)}（${r.scope==="game"?"按场":"赛季级"}）</option>`).join("")}</select>
+    <label class="f">场次</label><select class="f" id="tkGame"><option value="">— 赛季级 —</option>${games.map(g=>`<option value="${g.id}">${esc(g.date)}${isLiveGame(g)?" · 进行中":""}</option>`).join("")}</select>
+    <label class="f">张数</label><input class="f" type="number" id="tkCount" value="1" min="1">
+    <label class="f">备注（可选）</label><input class="f" id="tkNote" placeholder="如：新人小王">
+    <button class="btn" onclick="addTickets()">🎟️ 发券</button></div>
+  <div class="sect">📊 本赛季统计（${poolTotal} 张）</div>
+  ${Object.entries(totals).sort((a,b)=>b[1].total-a[1].total).map(([pid,t])=>
+    `<div class="kv"><span>${pName(pid)} · ${Object.entries(t.byReason).map(([rid,c])=>reasonOf(rid).icon+"×"+c).join(" ")}</span><b style="color:var(--gold2)">${t.total} 券</b></div>`).join("")||'<div class="empty">还没发过券</div>'}
+  <div class="card"><h3>🎲 公开抽奖</h3>
+    <label class="f">本轮奖品</label><input class="f" id="dPrize" placeholder="如：一等奖 iPhone 折叠屏">
+    <label class="f">抽出几位</label><input class="f" type="number" id="dN" value="1" min="1">
+    <div class="note">按券数加权随机抽取：券越多，被抽中概率越高。每位玩家每轮最多中一次，中奖者的其余券退出本轮券池。开奖记录公开可查。</div>
+    <button class="btn" onclick="doDraw()">🎲 开奖</button>
+    <div id="drawRes"></div></div>
+  <div class="card"><h3>🧾 发放明细</h3>
+    ${ledger.map(t=>`<div class="kv"><span>${reasonOf(t.reason).icon} ${pName(t.player_id)} <span style="color:var(--dim);font-size:12px">${esc((t.created_at||"").slice(0,10))}${t.note?" · "+esc(t.note):""}${t.drawn?' · <span style="color:var(--green)">已开奖</span>':""}</span></span>
+      <span><b>+${t.count}</b> <button class="rm" onclick="delTicket('${t.id}')">×</button></span></div>`).join("")||'<div class="empty">暂无</div>'}</div>
+  <div class="card"><h3>⚙️ 发券规则（每种理由默认张数）</h3>
+    ${TICKET_REASONS.map(r=>`<label class="f" style="display:flex;justify-content:space-between;align-items:center">${r.icon} ${esc(r.label)}<input class="f" style="width:80px;margin:0" type="number" min="0" id="rule_${r.id}" value="${ticketRule(r.id)}"></label>`).join("")}
+    <button class="btn" onclick="saveTicketRules()">保存规则</button></div>`;
+  tkReasonChg();
+}
+function tkReasonChg(){
+  const rid=$("#tkReason").value; $("#tkCount").value=ticketRule(rid);
+  if(reasonOf(rid).scope==="season") $("#tkGame").value="";
+  else if(!$("#tkGame").value && $("#tkGame").options.length>1) $("#tkGame").value=$("#tkGame").options[$("#tkGame").options.length-1].value;
+}
+async function addTickets(){
+  const s=activeSeason();
+  const pids=[...document.querySelectorAll("#tkPlayers input:checked")].map(c=>c.value);
+  const reason=$("#tkReason").value, count=parseInt($("#tkCount").value)||1;
+  const gameId=$("#tkGame").value||null, note=$("#tkNote").value.trim();
+  if(!pids.length){ toast("先选玩家"); return; }
+  if(reasonOf(reason).scope==="game"&&!gameId){ toast("选一场次"); return; }
+  for(const pid of pids){
+    const t={id:uid(),player_id:pid,season_id:s.id,game_id:gameId,reason,count,note,drawn:false,created_at:new Date().toISOString()};
+    DB.tickets.push(t); await dbPut("tickets",t);
+  }
+  await persist(); toast(`已发 ${pids.length} 人 × ${count} 券`); tabTickets();
+}
+async function delTicket(id){
+  const t=(DB.tickets||[]).find(x=>x.id===id); if(!t) return;
+  if(!confirm(`删除这条发券记录？(${DB.players.find(p=>p.id===t.player_id)?.name} +${t.count})`)) return;
+  DB.tickets=DB.tickets.filter(x=>x.id!==id); await dbDel("tickets",id); await persist(); tabTickets();
+}
+async function saveTicketRules(){
+  DB.settings.ticketRules=DB.settings.ticketRules||{};
+  TICKET_REASONS.forEach(r=>{ const v=parseInt($("#rule_"+r.id).value); DB.settings.ticketRules[r.id]=isNaN(v)?DEFAULT_TICKETS[r.id]:v; });
+  await persist(); toast("发券规则已保存"); tabTickets();
+}
+async function doDraw(){
+  const s=activeSeason(); const prize=$("#dPrize").value.trim(); const n=Math.max(1,parseInt($("#dN").value)||1);
+  if(!prize){ toast("填奖品名"); return; }
+  const pool=(DB.tickets||[]).filter(t=>t.season_id===s.id&&!t.drawn);
+  if(!pool.length){ toast("本赛季没有可抽的券"); return; }
+  const poolSize=pool.reduce((a,t)=>a+t.count,0);
+  let entries=[]; pool.forEach(t=>{ for(let i=0;i<t.count;i++) entries.push(t); });
+  const rnd=()=>{ const b=new Uint32Array(1); crypto.getRandomValues(b); return b[0]/4294967296; };
+  const seedHex=[...crypto.getRandomValues(new Uint8Array(8))].map(x=>x.toString(16).padStart(2,"0")).join("");
+  const winners=[];
+  while(winners.length<n&&entries.length){
+    const pick=entries[Math.floor(rnd()*entries.length)];
+    winners.push(pick);
+    entries=entries.filter(e=>e.player_id!==pick.player_id);
+  }
+  const now=new Date().toISOString();
+  for(const w of winners){
+    w.drawn=true; await dbPut("tickets",w);
+    const d={id:uid(),season_id:s.id,prize,winner_pid:w.player_id,ticket_id:w.id,pool_size:poolSize,seed:seedHex,created_at:now};
+    DB.draws.push(d); await dbPut("draws",d);
+  }
+  await persist();
+  const nm=pid=>esc(DB.players.find(p=>p.id===pid)?.name||"?");
+  $("#drawRes").innerHTML=`<div class="card" style="margin-top:10px"><h3>🎉 开奖结果</h3>
+    ${winners.map((w,i)=>`<div class="kv"><span>第 ${i+1} 位 · <b>${nm(w.player_id)}</b></span><span style="color:var(--gold2)">🏆 ${esc(prize)}</span></div>`).join("")}
+    <div class="note">券池 ${poolSize} 张 · 随机种子 ${seedHex} · 已公开记录</div></div>`;
+  toast("开奖完成！");
+}
+
+/* ============ 路由 ============ */
+function router(){
+  const h=location.hash||"#/";
+  document.querySelectorAll("#bottomnav a").forEach(a=>a.classList.remove("active"));
+  if(h.startsWith("#/prizes")){ $("[data-nav=prizes]").classList.add("active"); renderPrizes(); }
+  else if(h.startsWith("#/live")){ $("[data-nav=live]").classList.add("active"); renderLive(); }
+  else if(h.startsWith("#/tickets")){ $("[data-nav=tickets]").classList.add("active"); renderTickets(); }
+  else if(h.startsWith("#/admin")){ $("[data-nav=admin]").classList.add("active"); renderAdmin(); }
+  else{ $("[data-nav=board]").classList.add("active"); renderBoard(); }
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", router);
+window.openPlayer=openPlayer; window.closeSheet=closeSheet; window.renderBoard=renderBoard;
+window.openTicketSheet=openTicketSheet; window.renderTickets=renderTickets;
+window.addTickets=addTickets; window.delTicket=delTicket; window.doDraw=doDraw;
+window.saveTicketRules=saveTicketRules; window.tkReasonChg=tkReasonChg;
+window.doLogin=doLogin; window.logout=logout; window.setTab=setTab;
+window.addEntryRow=addEntryRow; window.delEntryRow=delEntryRow; window.updateEntryPreview=updateEntryPreview;
+window.saveGame=saveGame; window.addPlayer=addPlayer; window.togglePlayer=togglePlayer; window.manualBadge=manualBadge;
+window.addSeason=addSeason; window.setActiveSeason=setActiveSeason;
+window.openDesk=openDesk; window.renderDesk=renderDesk; window.startLiveGame=startLiveGame; window.finishLiveGame=finishLiveGame;
+window.deskSetChannel=deskSetChannel; window.deskSetRake=deskSetRake; window.deskAddPlay=deskAddPlay; window.deskUndoPlay=deskUndoPlay;
+window.settleCredit=settleCredit;
+window.deskAddBuyin=deskAddBuyin; window.deskAddCustom=deskAddCustom; window.deskRemoveBuyin=deskRemoveBuyin;
+window.deskSetCashOut=deskSetCashOut; window.deskClearCashOut=deskClearCashOut; window.deskRemovePlayer=deskRemovePlayer; window.deskAddPlayer=deskAddPlayer;
+window.onAvatarFile=onAvatarFile; window.onNewAvatarFile=onNewAvatarFile; window.clearAvatar=clearAvatar; window.renderLive=renderLive;
+window.saveSettings=saveSettings; window.savePw=savePw; window.saveSupa=saveSupa;
+window.exportJSON=exportJSON; window.exportSQL=exportSQL;
+
+/* ============ 云端模式自动刷新（玩家侧实时看） ============ */
+let pollStarted=false;
+async function cloudRefresh(){
+  if(STORE.mode!=="cloud") return;
+  if(location.hash.startsWith("#/admin")) return;               // 后台录入中不打扰
+  if($("#sheet")?.classList.contains("open")) return;            // 详情弹层打开时不刷新
+  const q=$("#q"); if(q&&document.activeElement===q) return;     // 正在搜索时不刷新
+  try{ DB=await STORE.load(); router(); }catch(e){}
+}
+function startPolling(){
+  if(pollStarted||STORE.mode!=="cloud") return;
+  pollStarted=true;
+  setInterval(()=>{ if(!document.hidden) cloudRefresh(); }, 12000);
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) cloudRefresh(); });
+}
+
+/* ============ 启动 ============ */
+(async function init(){
+  await initSupa();
+  STORE = supa ? Cloud : Local;
+  DB = await STORE.load();
+  // 数据迁移：历史纯数字 buyins 流水 → {amt, ch:"cash", paid:true} 对象形态；补齐 games.rake/plays 与 settings.creditLimit
+  const migrated=migrateBuyins();
+  if(migrated&&STORE.mode==="cloud"){ for(const e of DB.entries) await dbPut("entries",e).catch(()=>{}); }
+  // 赛季信息校正：OMT战队第一赛季日期固定为 2026-10-25 至 2026-11-30
+  (DB.seasons||[]).forEach(s=>{ if(s.name==="OMT战队第一赛季"||s.id==="s4"){ s.start_date="2026-10-25"; s.end_date="2026-11-30"; } });
+  if(!DB.settings) DB.settings={adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000};
+  if(DB.settings.creditLimit==null) DB.settings.creditLimit=3000;
+  DB.tickets=DB.tickets||[]; DB.draws=DB.draws||[];
+  if(!DB.settings.ticketRules) DB.settings.ticketRules={...DEFAULT_TICKETS};
+  // 演示奖品若从未改动过（旧赛季排名奖品），换成新赛季抽奖奖品结构
+  try{
+    const oldPrizes=[{e:"🏆",t:"赛季总冠军",d:"iPhone 17 Pro Max，或等值现金 $1,200（二选一）",top:1},{e:"🥈",t:"亚军",d:"茅台飞天 53° × 2 瓶",top:1},{e:"🥉",t:"季军",d:"$500 Visa 卡",top:0},{e:"🎖️",t:"第 4–6 名",d:"$200 – $300 现金或礼卡",top:0},{e:"📅",t:"全勤奖",d:"定制筹码套装 或 $100（12 场全到）",top:0},{e:"🧭",t:"推荐奖",d:"每带来一位新人，奖励 $50",top:0},{e:"⚡",t:"单场最佳",d:"当场发放小奖：红酒 / 耳机 / 茶叶",top:0}];
+    if(JSON.stringify(DB.prizes)===JSON.stringify(oldPrizes)) DB.prizes=seedData().prizes;
+  }catch(e){}
+  await persist();
+  const s=activeSeason();
+  if(s){ checkBadges(s.id); await persist(); }
+  router();
+  startPolling();
+})();
+</script>
+</body>
+</html>
