@@ -126,6 +126,7 @@ h2.page{font-size:20px;margin:18px 0 12px;color:var(--gold2)}
 .live-card{background:linear-gradient(135deg,#1a2c52,#0d1d3a);border:1px solid rgba(248,113,113,.5);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,.35)}
 .live-card .lt{font-weight:800;font-size:16px}
 .live-card .lm{color:var(--dim);font-size:13px;margin-top:3px}
+.squid-banner{background:linear-gradient(135deg,#3a2a08,#241a04);border:1px solid var(--gold);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;font-weight:800;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.35)}
 .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;vertical-align:middle}
 .pill.on{background:rgba(248,113,113,.14);color:#fca5a5;border:1px solid rgba(248,113,113,.45)}
 .pill.off{background:rgba(52,211,153,.12);color:var(--green);border:1px solid rgba(52,211,153,.4)}
@@ -192,10 +193,10 @@ const avMini = p => (p && p.img) ? `<img class="avmini" src="${p.img}" alt="">` 
 const BADGES = [
   {id:"debut",    icon:"🌱", name:"初露锋芒", desc:"完成第一场比赛", rarity:""},
   {id:"debut3",   icon:"🎉", name:"开门红",   desc:"首秀即进前三", rarity:""},
-  {id:"mvp",      icon:"👑", name:"单场MVP",  desc:"单场盈利第一", rarity:""},
+  {id:"mvp",      icon:"👑", name:"单场MVP",  desc:"单场夺冠", rarity:""},
   {id:"win3",     icon:"🏆", name:"三冠王",   desc:"赛季内3次夺冠", rarity:"rare"},
   {id:"streak3",  icon:"🔥", name:"连中三元", desc:"连续3场进前一半", rarity:"rare"},
-  {id:"whale",    icon:"🐋", name:"巨鲸",     desc:"单场盈利 ≥ $800", rarity:"rare"},
+  {id:"whale",    icon:"🐋", name:"巨鲸",     desc:"单场大胜", rarity:"rare"},
   {id:"steady",   icon:"🎣", name:"稳坐钓鱼台", desc:"连续5场进前一半", rarity:"rare"},
   {id:"hundred",  icon:"💯", name:"百分俱乐部", desc:"赛季积分破百", rarity:"legendary"},
   {id:"ironman",  icon:"💪", name:"铁人",     desc:"累计出战10场", rarity:""},
@@ -229,13 +230,13 @@ function seedData(){
   return {
     players, seasons:[season], games, entries, player_badges:[],
     tickets:[], draws:[],
-    settings:{ adminPw:"walnut888", attendancePts:1, buyinMult:{"标准":1,"深筹":1.5,"豪客":2}, whaleLine:800, creditLimit:3000,
+    settings:{ adminPw:"walnut888", attendancePts:1, buyinMult:{"标准":1,"深筹":1.5,"豪客":2}, whaleLine:800, creditLimit:3000, ontimeCutoff:"19:30", ironGames:12, squidAmount:10, squidSound:false,
       ticketRules:{ontime:1,water:1,hours4:1,badbeat:1,bomb:2,flush:4,refer:2,leader:3,iron:8} },
     prizes:[
       {e:"🏆",t:"一等奖",d:"iPhone 折叠屏 1TB · 全新 × 1 台",top:1},
       {e:"🎟️",t:"二等奖",d:"OMT 幸运码 1000 × 2 名",top:0},
       {e:"🎟️",t:"三等奖",d:"OMT 幸运码 500 × 2 名",top:0},
-      {e:"📜",t:"OMT 幸运码说明",d:"战队垫付的免买入筹码，仅本局可用，不可提现、不可转让。输了亏损由战队承担；赢了先扣回幸运码面值，剩余盈利归你。赛季内有效。",top:0},
+      {e:"📜",t:"OMT 幸运码说明",d:"战队垫付的免买入筹码，仅本局可用，不可提现、不可转让。输了亏损由战队承担；赢了先扣回幸运码面值，剩下的都归你。赛季内有效。",top:0},
     ],
     _seeded:true,
   };
@@ -279,7 +280,7 @@ const Cloud = {
     try{ const r=await supa.from("draws").select("*"); if(!r.error) draws=r.data||[]; }catch(e){}
     return { players:players.data||[], seasons:seasons.data||[], games:games.data||[],
       entries:entries.data||[], player_badges:pb.data||[], tickets, draws,
-      settings:Object.assign({adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000}, s),
+      settings:Object.assign({adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000,ontimeCutoff:"19:30",ironGames:12,squidAmount:10,squidSound:false}, s),
       prizes };
   },
   async save(){},
@@ -392,8 +393,10 @@ function playerBadges(pid){ return DB.player_badges.filter(b=>b.player_id===pid)
    数据扩展（兼容既有结构）：
    - games 增加 status："live"=进行中；"finished" 或缺省=已结束（历史数据无此字段，一律按已结束处理）
    - games 增加 rake:number（本场水费，缺省 0）、plays:[]（玩法速记 {id,type,player_id,at}，缺省 []）
-   - 进行中场次的 entries 增加：buyins:流水数组、cash_out:number|null（null=还在桌上）
-   - buyins 流水元素现为对象 {amt, ch, paid}：ch=支付渠道（见 CHANNELS），paid=false 仅出现在挂账未结清时；
+   - games 增加 dealer:string（荷官姓名，缺省 ""）、dealer_tips:number（本场荷官小费合计，缺省 0；按桌上筹码口径计入对账：小费是桌上筹码流向荷官的支出）
+   - 进行中场次的 entries 增加：buyins:流水数组、cash_out:number|null（null=还在桌上）、seat_at:首次买入时间 ISO（缺省 null，入座即确定）、left_at:离场时间 ISO（缺省 null）
+   - games 增加 auto_tickets_issued:boolean（结算自动券整批是否已发，缺省 false）；seasons 增加 awards_issued:boolean（赛季奖券是否已发，缺省 false）
+   - buyins 流水元素现为对象 {amt, ch, paid, at}：ch=支付渠道（见 CHANNELS），paid=false 仅出现在挂账未结清时，at=买入时刻 ISO（实时录入时记；旧流水缺 at 视为无时间数据）；
      历史纯数字元素自动迁移为 {amt, ch:"cash", paid:true}（见 migrateBuyins），所有读取都经 buyinAmt/buyinCh/buyinPaid 兼容两种形态
    - 结算时把最终盈亏写回 entry.profit，既有积分/徽章/统计逻辑完全不用改 */
 const CHANNELS=[
@@ -407,12 +410,13 @@ const chOf=id=>CHANNELS.find(c=>c.id===id)||CHANNELS[2];
 const buyinAmt = b => typeof b==="number" ? b : (parseFloat(b&&b.amt)||0);
 const buyinCh  = b => (b&&typeof b==="object"&&b.ch) ? b.ch : "cash";
 const buyinPaid= b => (b&&typeof b==="object") ? b.paid!==false : true;
-/* 玩法速记类型：feed=玩家端动态文案；鱿鱼只记录展示，炸弹/同花顺/皇家同花顺结算时自动发券 */
+/* 玩法速记类型：feed=玩家端动态文案；鱿鱼局只记录展示、不发券、不设单一赢家，炸弹/同花顺/皇家同花顺/天牌 Bad Beat 结算时自动发券 */
 const PLAY_TYPES=[
-  {id:"squid", icon:"🦑", label:"鱿鱼获胜", feed:"拿下鱿鱼"},
+  {id:"squid", icon:"🦑", label:"鱿鱼局", feed:"鱿鱼局"},
   {id:"bomb",  icon:"💣", label:"炸弹",     feed:"开出炸弹"},
   {id:"flush", icon:"🃏", label:"同花顺",   feed:"开出同花顺"},
   {id:"royal", icon:"👑", label:"皇家同花顺", feed:"开出皇家同花顺"},
+  {id:"badbeat", icon:"💔", label:"天牌 Bad Beat", feed:"遭遇天牌 Bad Beat"},
 ];
 const playOf=id=>PLAY_TYPES.find(t=>t.id===id)||PLAY_TYPES[0];
 const isLiveGame = g => !!g && g.status==="live";
@@ -423,13 +427,15 @@ function entrySettled(e){ return e.cash_out!==null && e.cash_out!==undefined && 
 function liveProfit(e){ return entrySettled(e) ? parseFloat(e.cash_out)-buyinTotal(e) : null; }
 /* 旧对账口径（保留备用）：只统计已离场（已填 cash out）的玩家盈亏；在桌玩家暂不计入 */
 function settledProfitSum(game){ return gameEntries(game.id).filter(entrySettled).reduce((a,e)=>a+liveProfit(e),0); }
-/* 新对账口径（水费）：差额 = ∑全部买入 − ∑已离场 cash out − 本场水费。
+/* 新对账口径（水费 + 荷官小费）：差额 = ∑全部买入 − ∑已离场 cash out − 本场水费 − 荷官小费。
+   小费按桌上筹码口径：是桌上筹码流向荷官的支出，和水费一样是桌外流出，故从差额中扣除。
+   （若实际为现金另付小费、不走桌上筹码，须把小费字段置 0 或另行调整口径。）
    在桌未离场者尚无 cash out、不计入带出，其买入仍在桌上，故差额要等全员离场后才应为 0 */
 function balanceDiff(game){
   const es=gameEntries(game.id);
   const tb=es.reduce((a,e)=>a+buyinTotal(e),0);
   const co=es.filter(entrySettled).reduce((a,e)=>a+(parseFloat(e.cash_out)||0),0);
-  return tb-co-(parseFloat(game.rake)||0);
+  return tb-co-(parseFloat(game.rake)||0)-(parseFloat(game.dealer_tips)||0);
 }
 /* 挂账：某玩家全部场次未结清的挂账买入合计（渠道=挂账且未结清） */
 function unpaidCredit(pid){
@@ -452,12 +458,86 @@ function creditRows(){
     .map(([pid,m])=>({player:DB.players.find(x=>x.id===pid), ...m}))
     .filter(x=>x.player).sort((a,b)=>b.total-a.total);
 }
-/* 玩法结算联动：炸弹→bomb 券、同花顺/皇家同花顺→flush 券（张数读既有发券规则，默认 2/4）；鱿鱼不发券 */
+/* 荷官：历史荷官姓名去重（新场次/牌桌输入框的 datalist 建议用） */
+function dealerNames(){
+  const s=new Set();
+  (DB.games||[]).forEach(g=>{ const d=(g.dealer||"").trim(); if(d) s.add(d); });
+  return [...s];
+}
+/* 荷官小费汇总（后台荷官视图用）：仅统计已结束场次，按荷官姓名聚合场次与小费合计；未填荷官名的场次归入「未填」 */
+function dealerRows(){
+  const map={};
+  (DB.games||[]).filter(g=>!isLiveGame(g)).forEach(g=>{
+    const d=(g.dealer||"").trim()||"未填";
+    const m=map[d]||(map[d]={games:0,tips:0});
+    m.games++; m.tips+=parseFloat(g.dealer_tips)||0;
+  });
+  return Object.entries(map).map(([name,m])=>({name,...m})).sort((a,b)=>b.tips-a.tips);
+}
+/* 整点鱿鱼提示 + 鱿鱼局事件（不设单一赢家、不发券）
+   - 每整点：后台牌桌与玩家端「今晚」页同时弹横幅；后台点「开始鱿鱼」确认后该小时不再弹
+   - 确认状态存 games.squid_ack（整点字符串数组，如 "20:00"），随既有存储同步
+   - 横幅首次出现时震动（navigator.vibrate，静默失败）；提示音默认关闭，开启后用 WebAudio 播一声短音（浏览器要求用户先与页面交互过才有效，失败静默） */
+function squidAmount(){ const v=parseFloat(DB.settings.squidAmount); return isNaN(v)?10:v; }
+function squidHourStr(d){ const x=d||new Date(); return String(x.getHours()).padStart(2,"0")+":00"; }
+function squidPendingHour(game, now){
+  if(!game || !isLiveGame(game)) return null;
+  const h=squidHourStr(now||new Date());
+  return (game.squid_ack||[]).includes(h) ? null : h;
+}
+function squidBannerHTML(game, hour, canAck){
+  return `<div class="squid-banner">🦑 整点鱿鱼时间！本局${canAck?` $${squidAmount().toLocaleString()}`:""}鱿鱼${canAck?` <button class="btn ghost small" style="margin-left:8px;width:auto" onclick="ackSquidHour('${game.id}','${hour}')">开始鱿鱼</button>`:""}</div>`;
+}
+let lastSquidAlertKey="";
+function squidAlert(game, hour){
+  const key=game.id+"@"+hour;
+  if(key===lastSquidAlertKey) return; lastSquidAlertKey=key;
+  try{ if(navigator.vibrate) navigator.vibrate(200); }catch(e){}
+  if(DB.settings.squidSound){ try{ squidBeep(); }catch(e){} }
+}
+function squidBeep(){
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  const ctx=new AC();
+  try{
+    const o=ctx.createOscillator(), gn=ctx.createGain();
+    o.type="sine"; o.frequency.value=880; gn.gain.value=0.12;
+    o.connect(gn); gn.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+0.3);
+    setTimeout(()=>{ try{ctx.close();}catch(e){} }, 500);
+  }catch(e){ try{ctx.close();}catch(_){} }
+}
+async function ackSquidHour(gid, hour){
+  const g=DB.games.find(x=>x.id===gid); if(!g||!isLiveGame(g)) return;
+  g.squid_ack=g.squid_ack||[];
+  if(!g.squid_ack.includes(hour)) g.squid_ack.push(hour);
+  await saveGameRow(g); renderDesk(); toast(`🦑 ${hour} 鱿鱼已开始`);
+}
+let squidTimerStarted=false;
+function refreshSquidBanner(){
+  const box=document.getElementById("squidBanner"); if(!box) return;
+  const g=DB.games.find(x=>x.id===deskGameId);
+  const hour=g?squidPendingHour(g):null;
+  if(!hour){ box.innerHTML=""; return; }
+  box.innerHTML=squidBannerHTML(g, hour, true);
+  squidAlert(g, hour);
+}
+/* 鱿鱼局展示：旧单赢家记录迁移后统一用 winners 数组；不称“赢家” */
+function squidWinners(pl){
+  const ws=Array.isArray(pl.winners)?pl.winners:(pl.player_id?[pl.player_id]:[]);
+  return ws.map(pid=>{ const p=DB.players.find(x=>x.id===pid); return p?p.name:null; }).filter(Boolean);
+}
+function squidPlayTitle(pl){
+  const hour=pl.hour||(pl.at?pl.at.slice(11,13)+":00":"");
+  const names=squidWinners(pl).join("、");
+  return {hour, names};
+}
+/* 玩法结算联动：炸弹→bomb 券、同花顺/皇家同花顺→flush 券、天牌 Bad Beat→badbeat 券（张数读既有发券规则，默认 2/4/1）；鱿鱼不发券 */
 function playTicketGrants(game){
   const out=[];
   (game.plays||[]).forEach(pl=>{
     if(pl.type==="bomb") out.push({player_id:pl.player_id, reason:"bomb", count:ticketRule("bomb")});
     else if(pl.type==="flush"||pl.type==="royal") out.push({player_id:pl.player_id, reason:"flush", count:ticketRule("flush")});
+    else if(pl.type==="badbeat") out.push({player_id:pl.player_id, reason:"badbeat", count:ticketRule("badbeat")});
   });
   return out;
 }
@@ -468,7 +548,7 @@ function gameStatement(g){
   let hasBuy=false, total=0;
   es.forEach(e=>(e.buyins||[]).forEach(b=>{ hasBuy=true; const a=buyinAmt(b); byCh[buyinCh(b)]+=a; total+=a; }));
   const allSettled=es.length>0&&es.every(entrySettled);
-  return { byCh, hasBuy, total, rake:parseFloat(g.rake)||0, diff: allSettled? balanceDiff(g): null };
+  return { byCh, hasBuy, total, rake:parseFloat(g.rake)||0, dealer:(g.dealer||"").trim(), tips:parseFloat(g.dealer_tips)||0, diff: allSettled? balanceDiff(g): null };
 }
 /* 荣誉榜（由已结算赛季数据自动统计，零录入）：水上王=累计盈利最高 / 水下守护者=累计亏损最多 / 到场王=参赛场次最多 */
 function honors(seasonId){
@@ -489,20 +569,22 @@ function migrateBuyins(){
       return b;
     });
   });
-  (DB.games||[]).forEach(g=>{ if(g.plays===undefined) g.plays=[]; if(g.rake===undefined) g.rake=0; });
-  if(DB.settings&&DB.settings.creditLimit==null) DB.settings.creditLimit=3000;
+  (DB.entries||[]).forEach(e=>{ if(e.seat_at===undefined) e.seat_at=null; if(e.left_at===undefined) e.left_at=null; });
+  (DB.games||[]).forEach(g=>{ if(g.plays===undefined) g.plays=[]; if(g.rake===undefined) g.rake=0; if(g.dealer===undefined) g.dealer=""; if(g.dealer_tips===undefined) g.dealer_tips=0; if(g.auto_tickets_issued===undefined) g.auto_tickets_issued=false; if(g.squid_ack===undefined) g.squid_ack=[]; (g.plays||[]).forEach(pl=>{ if(pl.type==="squid"){ if(!Array.isArray(pl.winners)) pl.winners = pl.player_id ? [pl.player_id] : []; if(!pl.hour) pl.hour = pl.at ? pl.at.slice(11,13)+":00" : ""; if(pl.amount==null) pl.amount = (DB.settings&&DB.settings.squidAmount!=null) ? DB.settings.squidAmount : 10; } }); });
+  (DB.seasons||[]).forEach(s=>{ if(s.awards_issued===undefined) s.awards_issued=false; });
+  if(DB.settings){ if(DB.settings.creditLimit==null) DB.settings.creditLimit=3000; if(DB.settings.ontimeCutoff==null) DB.settings.ontimeCutoff="19:30"; if(DB.settings.ironGames==null) DB.settings.ironGames=12; if(DB.settings.squidAmount==null) DB.settings.squidAmount=10; if(DB.settings.squidSound==null) DB.settings.squidSound=false; }
   return changed;
 }
-function newLiveGame(seasonId, date, tier, pids){
-  const g={id:uid(), season_id:seasonId, date, buyin_tier:tier, status:"live", rake:0, plays:[], created_at:new Date().toISOString()};
+function newLiveGame(seasonId, date, tier, pids, dealer, tips){
+  const g={id:uid(), season_id:seasonId, date, buyin_tier:tier, status:"live", rake:0, plays:[], squid_ack:[], dealer:(dealer||"").trim(), dealer_tips:parseFloat(tips)||0, created_at:new Date().toISOString()};
   DB.games.push(g);
-  pids.forEach(pid=>DB.entries.push({id:uid(), game_id:g.id, player_id:pid, profit:0, buyins:[], cash_out:null}));
+  pids.forEach(pid=>DB.entries.push({id:uid(), game_id:g.id, player_id:pid, profit:0, buyins:[], cash_out:null, seat_at:null, left_at:null}));
   return g;
 }
 function applyBuyin(e, amt, ch){
   e.buyins=e.buyins||[];
   const c=chOf(ch).id;
-  e.buyins.push({amt, ch:c, paid:c!=="credit"});
+  e.buyins.push({amt, ch:c, paid:c!=="credit", at:new Date().toISOString()});
 }
 function settleGame(game){
   gameEntries(game.id).forEach(e=>{ e.profit=(entrySettled(e)?parseFloat(e.cash_out):0)-buyinTotal(e); });
@@ -517,8 +599,8 @@ function honorsHTML(seasonId){
   const h=honors(seasonId); if(!h) return "";
   const row=(icon,label,s,val)=>`<div class="kv"><span>${icon} <b>${label}</b> · ${avMini(s.player)}${esc(s.player.name)}</span><b>${val}</b></div>`;
   return `<div class="sect">👑 本赛季荣誉榜</div><div class="card" style="padding:6px 16px">
-    ${row("🏆","水上王",h.waterKing,fmt$(h.waterKing.profit))}
-    ${row("🛡️","水下守护者",h.guardian,fmt$(h.guardian.profit))}
+    ${row("🏆","水上王",h.waterKing,h.waterKing.games+" 场")}
+    ${row("🛡️","水下守护者",h.guardian,h.guardian.games+" 场")}
     ${row("🔥","到场王",h.ironman,h.ironman.games+" 场")}
   </div>`;
 }
@@ -554,7 +636,7 @@ function renderBoard(){
       <div class="pinfo"><div class="pname">${esc(s2.player.name)}</div>
         <div class="ptitle">${esc(s2.player.title||titleFor(s2.rank,s2.games))} · 🏅${nb}</div></div>
       <div class="pstats"><div class="pts">${s2.pts}<span style="font-size:12px;color:var(--dim)"> 分</span>${dHtml}</div>
-        <div class="pgames">${s2.games} 场 · ${fmt$(s2.profit)}</div></div>
+        <div class="pgames">${s2.games} 场</div></div>
       <div class="chev">›</div></div>`;
   }).join(""):`<div class="empty">没找到这个名字 🤔</div>`;
   $("#honors").innerHTML=honorsHTML(s.id);
@@ -575,33 +657,33 @@ function livePinHTML(g){
 }
 function liveRowsHTML(g){
   const es=gameEntries(g.id);
-  const left=es.filter(entrySettled).sort((a,b)=>liveProfit(b)-liveProfit(a));
-  const on=es.filter(e=>!entrySettled(e)).sort((a,b)=>buyinTotal(b)-buyinTotal(a));
+  const left=es.filter(entrySettled);
+  const on=es.filter(e=>!entrySettled(e));
   const prow=(p)=>DB.players.find(x=>x.id===p)||{name:"?",avatar:"🃏"};
-  const leftHTML=left.length?left.map((e,i)=>{ const p=prow(e.player_id); const pf=liveProfit(e);
-    return `<div class="lb-row${i<3?" top"+(i+1):""}">
-      <div class="rank${i<3?" r"+(i+1):""}">${i+1}</div>
+  const leftHTML=left.length?left.map(e=>{ const p=prow(e.player_id);
+    return `<div class="lb-row">
       <div class="avatar">${avHTML(p)}</div>
-      <div class="pinfo"><div class="pname">${esc(p.name)} <span class="pill off">已离场</span></div>
-        <div class="ptitle">买入 $${buyinTotal(e).toLocaleString()} · 离场 $${(parseFloat(e.cash_out)||0).toLocaleString()}</div></div>
-      <div class="pstats"><div class="pts" style="color:${pf>=0?"var(--green)":"var(--red)"}">${fmt$(pf)}</div>
-        <div class="pgames">临时第 ${i+1} 名</div></div></div>`; }).join(""):`<div class="empty">还没有玩家离场</div>`;
+      <div class="pinfo"><div class="pname">${esc(p.name)} <span class="pill off">已离场</span></div></div></div>`; }).join(""):`<div class="empty">还没有玩家离场</div>`;
   const onHTML=on.length?on.map(e=>{ const p=prow(e.player_id);
     return `<div class="lb-row">
-      <div class="rank">·</div>
       <div class="avatar">${avHTML(p)}</div>
-      <div class="pinfo"><div class="pname">${esc(p.name)} <span class="pill on">在桌</span></div>
-        <div class="ptitle">已买入 ${(e.buyins||[]).length} 次</div></div>
-      <div class="pstats"><div class="pts" style="color:var(--gold2)">$${buyinTotal(e).toLocaleString()}</div>
-        <div class="pgames">总买入</div></div></div>`; }).join(""):`<div class="empty">桌上没人了</div>`;
-  return `<div class="sect">✅ 已离场 · 临时排名（按盈亏）</div><div class="lb">${leftHTML}</div>
+      <div class="pinfo"><div class="pname">${esc(p.name)} <span class="pill on">在桌</span></div></div></div>`; }).join(""):`<div class="empty">桌上没人了</div>`;
+  return `<div class="sect">✅ 已离场</div><div class="lb">${leftHTML}</div>
     <div class="sect">🪑 还在桌上</div><div class="lb">${onHTML}</div>`;
 }
-/* 玩家端今晚玩法动态（如「🦑 阿强 拿下鱿鱼」），最新在前 */
+/* 玩家端今晚玩法动态（鱿鱼局显示为「🦑 20:00 鱿鱼局」，不设单一赢家），最新在前 */
 function playsFeedHTML(g){
   const plays=g.plays||[]; if(!plays.length) return "";
   const prow=pid=>DB.players.find(x=>x.id===pid)||{name:"?",avatar:"🃏"};
-  return `<div class="sect">🎉 今晚玩法动态</div><div class="lb">${plays.slice().reverse().map(pl=>{ const t=playOf(pl.type); const p=prow(pl.player_id);
+  return `<div class="sect">🎉 今晚玩法动态</div><div class="lb">${plays.slice().reverse().map(pl=>{
+    if(pl.type==="squid"){
+      const {hour, names}=squidPlayTitle(pl);
+      return `<div class="lb-row" style="cursor:default;min-height:56px">
+      <div class="avatar">🦑</div>
+      <div class="pinfo"><div class="pname" style="font-size:15px">🦑 ${esc(hour)} 鱿鱼局</div>
+        ${names?`<div class="ptitle">拿钱：${esc(names)}</div>`:""}</div></div>`;
+    }
+    const t=playOf(pl.type); const p=prow(pl.player_id);
     return `<div class="lb-row" style="cursor:default;min-height:56px">
       <div class="avatar">${avHTML(p)}</div>
       <div class="pinfo"><div class="pname" style="font-size:15px">${t.icon} ${esc(p.name)} ${esc(t.feed)}</div>
@@ -611,14 +693,18 @@ function renderLive(){
   const s=activeSeason(); const v=$("#view");
   if(!s){ v.innerHTML=`<div class="empty">还没有赛季</div>`; return; }
   const g=liveGameOf(s.id);
-  if(!g){ v.innerHTML=`<h2 class="page">🔴 今晚牌局</h2><div class="empty">今晚暂无进行中的牌局<br>开局后这里会实时显示买入与战况 🎬</div>`; return; }
+  if(!g){ v.innerHTML=`<h2 class="page">🔴 今晚牌局</h2><div class="empty">今晚暂无进行中的牌局<br>开局后这里会实时显示战况 🎬</div>`; return; }
   const es=gameEntries(g.id);
+  const sqHour=squidPendingHour(g);
+  if(sqHour) squidAlert(g, sqHour);
   v.innerHTML=`<h2 class="page"><span class="live-dot"></span>今晚牌局 · 直播中</h2>
     <div class="live-card"><div class="lt">${esc(g.date)} · ${esc(g.buyin_tier)}局</div>
-      <div class="lm">共 ${es.length} 位玩家 · 买入实时更新中${STORE.mode==="cloud"?"（约 12 秒自动刷新）":""}</div></div>
+      <div class="lm">共 ${es.length} 位玩家 · 直播进行中${STORE.mode==="cloud"?"（约 12 秒自动刷新）":""}</div>
+      ${g.dealer?`<div class="lm">🃏 本场荷官：${esc(g.dealer)}</div>`:""}</div>
+    ${sqHour?squidBannerHTML(g,sqHour,false):""}
     ${liveRowsHTML(g)}
     ${playsFeedHTML(g)}
-    <div class="note">在桌玩家的盈亏要等离场结算后才确定；已离场排名为临时排名，本场结束并结算后计入赛季总榜。</div>`;
+    <div class="note">本场结束并结算后计入赛季总榜（积分）。</div>`;
 }
 function renderPrizes(){
   $("#view").innerHTML=`<h2 class="page">🎁 赛季奖品池</h2>
@@ -708,7 +794,6 @@ function openPlayer(pid){
     <div class="stat-grid">
       <div class="stat"><div class="v g">${st.pts}</div><div class="k">赛季积分</div></div>
       <div class="stat"><div class="v">${st.games}<span style="font-size:13px;color:var(--dim)"> 场</span></div><div class="k">出勤</div></div>
-      <div class="stat"><div class="v ${st.profit>=0?"g":""}">${fmt$(st.profit)}</div><div class="k">总盈利</div></div>
       <div class="stat"><div class="v gold">${avg}</div><div class="k">场均积分</div></div>
       <div class="stat"><div class="v gold">🎟️${tk.total}</div><div class="k">抽奖券</div></div>
     </div>
@@ -723,7 +808,7 @@ function openPlayer(pid){
     <div class="sect">近期战绩</div>
     <div class="gamelog">${myGames.slice(-5).reverse().map(({g,r})=>
       `<div class="grow"><span>${esc(g.date)} · 第${r.rank}名</span>
-       <span class="gp ${r.profit>=0?"pos":"neg"}">${fmt$(r.profit)} · +${r.pts}分</span></div>`).join("")||'<div class="empty">暂无</div>'}</div>
+       <span class="gp">+${r.pts}分</span></div>`).join("")||'<div class="empty">暂无</div>'}</div>
     <button class="btn ghost" onclick="closeSheet()">关闭</button>`;
   $("#sheetMask").classList.add("open"); $("#sheet").classList.add("open");
 }
@@ -748,12 +833,13 @@ function renderAdmin(){
       <div class="tab${adminTab==="entry"?" active":""}" onclick="setTab('entry')">📝 战绩录入</div>
       <div class="tab${adminTab==="tickets"?" active":""}" onclick="setTab('tickets')">🎟️ 抽奖券</div>
       <div class="tab${adminTab==="credit"?" active":""}" onclick="setTab('credit')">💳 挂账</div>
+      <div class="tab${adminTab==="dealer"?" active":""}" onclick="setTab('dealer')">🃏 荷官</div>
       <div class="tab${adminTab==="players"?" active":""}" onclick="setTab('players')">👥 玩家</div>
       <div class="tab${adminTab==="season"?" active":""}" onclick="setTab('season')">🏁 赛季</div>
       <div class="tab${adminTab==="setup"?" active":""}" onclick="setTab('setup')">🔧 设置</div>
     </div><div id="atab"></div>
     <button class="btn ghost small" onclick="logout()">退出登录</button>`;
-  ({entry:tabEntry, tickets:tabTickets, credit:tabCredit, players:tabPlayers, season:tabSeason, setup:tabSetup})[adminTab]();
+  ({entry:tabEntry, tickets:tabTickets, credit:tabCredit, dealer:tabDealer, players:tabPlayers, season:tabSeason, setup:tabSetup})[adminTab]();
 }
 function doLogin(){
   if($("#apw").value===(DB.settings.adminPw||CONFIG.adminPwDefault)){
@@ -793,7 +879,8 @@ function statementHTML(g, res){
   return `<div class="stmt"><div class="st">📋 本场结算单 · ${esc(g.date)}（截图发群用）</div>
     ${rows}${chLines}
     <div class="kv"><span>本场水费</span><b>$${st.rake.toLocaleString()}</b></div>
-    <div class="kv"><span>对账差额（买入 − 带出 − 水费）</span>${st.diff===null?`<span style="color:var(--dim)">—（无离场记录）</span>`:Math.round(st.diff)===0?`<b style="color:var(--green)">$0 ✅ 对账平</b>`:`<b style="color:#fde68a">${st.diff>0?"+":"−"}$${Math.abs(Math.round(st.diff)).toLocaleString()} ⚠️</b>`}</div>
+    <div class="kv"><span>荷官</span><b>${st.dealer?`${esc(st.dealer)} · 小费 $${st.tips.toLocaleString()}`:"—"}</b></div>
+    <div class="kv"><span>对账差额（买入 − 带出 − 水费 − 小费）</span>${st.diff===null?`<span style="color:var(--dim)">—（无离场记录）</span>`:Math.round(st.diff)===0?`<b style="color:var(--green)">$0 ✅ 对账平</b>`:`<b style="color:#fde68a">${st.diff>0?"+":"−"}$${Math.abs(Math.round(st.diff)).toLocaleString()} ⚠️</b>`}</div>
   </div>`;
 }
 function historyHTML(){
@@ -822,8 +909,11 @@ function tabEntry(){
     <label class="f">入座玩家（多选）</label>
     <div id="nPlayers" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
       ${players.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:14px"><input type="checkbox" value="${p.id}"> ${avMini(p)}${esc(p.name)}</label>`).join("")}</div>
+    <label class="f">荷官姓名（可选）</label><input class="f" id="nDealer" list="dealerList" placeholder="如：阿强">
+    <datalist id="dealerList">${dealerNames().map(d=>`<option value="${esc(d)}">`).join("")}</datalist>
+    <label class="f">荷官小费合计 $（可选，直播中可再改）</label><input class="f" type="number" id="nTips" placeholder="0">
     <button class="btn" onclick="startLiveGame()">🔴 开局（进行中）</button>
-    <div class="note">开局后在上方牌桌里实时记买入和离场；玩家在「今晚」页能实时看到买入与临时排名。</div></div>
+    <div class="note">开局后在上方牌桌里实时记买入和离场；玩家在「今晚」页能实时看到在桌状态。</div></div>
     ${historyHTML()}
     <details class="legacy"><summary>⌨️ 补录已结束场次（直接录盈亏 · 旧方式）</summary>
     <div class="card"><h3>📝 录入一场战绩</h3>
@@ -850,7 +940,7 @@ async function startLiveGame(){
   if(pids.length<2){ toast("至少选 2 位玩家入座"); return; }
   const exist=liveGameOf(seasonId);
   if(exist){ toast("本赛季已有一场进行中，先结束它"); deskGameId=exist.id; renderAdmin(); return; }
-  const g=newLiveGame(seasonId,date,tier,pids);
+  const g=newLiveGame(seasonId,date,tier,pids,$("#nDealer")?.value,$("#nTips")?.value);
   await saveGameRow(g);
   for(const e of gameEntries(g.id)) await dbPut("entries",e).catch(()=>{});
   await persist();
@@ -895,23 +985,48 @@ function renderDesk(){
   const notSeated=DB.players.filter(p=>p.active&&!es.some(e=>e.player_id===p.id));
   box.innerHTML=`<div class="card" style="border-color:rgba(248,113,113,.5)">
     <h3><span class="live-dot"></span>牌桌 · ${esc(g.date)} · ${esc(g.buyin_tier)}局</h3>
+    <div id="squidBanner"></div>
     <div class="note" style="margin:0 0 6px">先选支付渠道再点金额记买入（点小票可撤销那一笔）；玩家离场时填 cash out 点「离场结算」。结束后本场锁定，不能再改流水。</div>
     <div class="chbar">${CHANNELS.map(c=>`<button class="chbtn${deskChannel===c.id?" on":""}" onclick="deskSetChannel('${c.id}')">${c.label}</button>`).join("")}</div>
     <div class="note" style="margin:0 0 8px">当前渠道：<b style="color:var(--gold2)">${chOf(deskChannel).label}</b>${deskChannel==="credit"?" · 挂账买入会自动进入「未结清」，在后台「💳 挂账」页可结清":""}</div>
+    <div style="display:flex;gap:6px;align-items:center;margin:10px 0">
+      <span style="font-size:14px;white-space:nowrap">🃏 荷官</span>
+      <input class="f" id="gDealer" list="dealerList2" value="${esc(g.dealer||"")}" placeholder="荷官姓名" style="flex:1">
+      <datalist id="dealerList2">${dealerNames().map(d=>`<option value="${esc(d)}">`).join("")}</datalist>
+      <span style="font-size:14px;white-space:nowrap">💰 小费 $</span>
+      <input class="f" type="number" id="gTips" value="${parseFloat(g.dealer_tips)||0}" style="flex:1">
+      <button class="btn ghost small" style="width:auto;margin:0;padding:10px 14px" onclick="deskSetDealer('${g.id}')">保存</button>
+    </div>
     ${rows}
     ${notSeated.length?`<div style="display:flex;gap:6px;align-items:center;margin-top:4px">
       <select class="f" id="deskAddSel" style="flex:1">${notSeated.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select>
       <button class="btn ghost small" style="width:auto;margin:0;padding:11px 14px" onclick="deskAddPlayer('${g.id}')">＋ 迟到入座</button></div>`:""}
     <div class="sect" style="margin:16px 0 6px">🎉 玩法记录</div>
     <div style="display:flex;gap:6px;align-items:center">
-      <select class="f" id="playType" style="flex:1">${PLAY_TYPES.map(t=>`<option value="${t.id}">${t.icon} ${t.label}</option>`).join("")}</select>
+      <select class="f" id="playType" style="flex:1" onchange="toggleSquidForm()">${PLAY_TYPES.map(t=>`<option value="${t.id}">${t.icon} ${t.label}</option>`).join("")}</select>
       <select class="f" id="playPlayer" style="flex:1">${es.map(e=>`<option value="${e.player_id}">${esc(prow(e.player_id).name)}</option>`).join("")}</select>
       <button class="btn ghost small" style="width:auto;margin:0;padding:11px 14px" onclick="deskAddPlay('${g.id}')">＋ 记一条</button>
     </div>
-    ${(g.plays||[]).length?`<div style="margin-top:6px">${(g.plays||[]).map(pl=>{ const t=playOf(pl.type);
+    <div id="squidForm" style="display:none;margin-top:6px">
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:14px;white-space:nowrap">整点</span>
+        <input class="f" type="time" id="squidHour" step="3600" style="flex:1">
+        <span style="font-size:14px;white-space:nowrap">金额 $</span>
+        <input class="f" type="number" id="squidAmt" style="flex:1">
+      </div>
+      <div style="margin-top:6px;font-size:13px;color:var(--dim)">拿钱的人（可多选，可不选，不设单一赢家）：</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${es.map(e=>`<label style="font-size:14px"><input type="checkbox" name="sqWin" value="${e.player_id}"> ${esc(prow(e.player_id).name)}</label>`).join("")}</div>
+    </div>
+    ${(g.plays||[]).length?`<div style="margin-top:6px">${(g.plays||[]).map(pl=>{
+      if(pl.type==="squid"){
+        const {hour, names}=squidPlayTitle(pl);
+        const amt=pl.amount!=null?pl.amount:squidAmount();
+        return `<div class="playrow"><span>🦑 ${esc(hour)} 鱿鱼局 · $${amt.toLocaleString()}${names?` · 拿钱：${esc(names)}`:""}</span><span style="margin-left:auto;color:var(--dim);font-size:12px">${esc((pl.at||"").slice(11,16))}</span></div>`;
+      }
+      const t=playOf(pl.type);
       return `<div class="playrow"><span>${t.icon} ${esc(prow(pl.player_id).name)} · ${esc(t.label)}</span><span style="margin-left:auto;color:var(--dim);font-size:12px">${esc((pl.at||"").slice(11,16))}</span></div>`; }).join("")}
       <button class="btn ghost small" onclick="deskUndoPlay('${g.id}')">↩️ 撤销最近一条</button></div>`
-    :`<div class="note">还没有玩法记录。炸弹 / 同花顺 / 皇家同花顺会在结算时自动发券（炸弹 2 张、同花顺 4 张），鱿鱼只记录展示、会出现在玩家端「今晚」动态里。</div>`}
+    :`<div class="note">还没有玩法记录。炸弹 / 同花顺 / 皇家同花顺 / 天牌 Bad Beat 会在结算时自动发券（炸弹 2 张、同花顺 4 张、Bad Beat 1 张），鱿鱼局只记录展示、不发券、不设单一赢家，会出现在玩家端「今晚」动态里。</div>`}
     <div style="display:flex;gap:6px;align-items:center;margin-top:16px">
       <span style="font-size:14px;white-space:nowrap">💧 本场水费 $</span>
       <input class="f" type="number" id="gRake" value="${parseFloat(g.rake)||0}" style="flex:1">
@@ -919,12 +1034,16 @@ function renderDesk(){
     </div>
     <div class="kv"><span>全部买入</span><b>$${totalBuy.toLocaleString()}</b></div>
     <div class="kv"><span>已离场带出（${settledN} 人）</span><b>$${settledOut.toLocaleString()}</b></div>
+    <div class="kv"><span>荷官小费${g.dealer?`（${esc(g.dealer)}）`:""}</span><b>$${(parseFloat(g.dealer_tips)||0).toLocaleString()}</b></div>
     ${dRound===0
-      ? `<div class="okbox">✅ 对账平：全部买入 − 已离场带出 − 本场水费 = $0</div>`
-      : `<div class="warnbox">⚠️ 对账差额 <b>${diff>0?"+":"−"}$${Math.abs(dRound).toLocaleString()}</b>（全部买入 − 已离场带出 − 本场水费）。口径：在桌玩家尚未离场、筹码还在桌上，不计入带出，差额要等全员离场后才应为 0；全员离场后仍不为 0，多半是买入或离场金额漏记/错记，请核对（仅提醒，不阻止结算）。</div>`}
+      ? `<div class="okbox">✅ 对账平：全部买入 − 已离场带出 − 本场水费 − 荷官小费 = $0</div>`
+      : `<div class="warnbox">⚠️ 对账差额 <b>${diff>0?"+":"−"}$${Math.abs(dRound).toLocaleString()}</b>（全部买入 − 已离场带出 − 本场水费 − 荷官小费）。口径：在桌玩家尚未离场、筹码还在桌上，不计入带出，差额要等全员离场后才应为 0；全员离场后仍不为 0，多半是买入或离场金额漏记/错记，请核对（仅提醒，不阻止结算）。</div>`}
     <button class="btn" onclick="finishLiveGame('${g.id}')">🏁 结束本场并结算积分</button>
     <button class="btn ghost small" onclick="deskGameId=null;renderDesk()">收起牌桌</button>
   </div>`;
+  if(!squidTimerStarted){ squidTimerStarted=true; setInterval(refreshSquidBanner, 30000); }
+  refreshSquidBanner();
+  toggleSquidForm();
 }
 function deskSetChannel(ch){ deskChannel=chOf(ch).id; try{ localStorage.setItem("walnut_desk_ch",deskChannel); }catch(e){} renderDesk(); }
 async function deskSetRake(gid){
@@ -932,12 +1051,37 @@ async function deskSetRake(gid){
   g.rake=parseFloat($("#gRake")?.value)||0;
   await saveGameRow(g); renderDesk(); toast(`本场水费已设为 $${g.rake.toLocaleString()}`);
 }
+async function deskSetDealer(gid){
+  const g=DB.games.find(x=>x.id===gid); if(!g) return;
+  g.dealer=($("#gDealer")?.value||"").trim();
+  g.dealer_tips=parseFloat($("#gTips")?.value)||0;
+  await saveGameRow(g); renderDesk(); toast(`荷官已设为 ${g.dealer||"未填"} · 小费 $${g.dealer_tips.toLocaleString()}`);
+}
+function toggleSquidForm(){
+  const isSq=$("#playType")?.value==="squid";
+  const f=$("#squidForm"); if(f) f.style.display=isSq?"block":"none";
+  const sel=$("#playPlayer"); if(sel) sel.style.display=isSq?"none":"";
+  if(isSq){
+    const h=$("#squidHour"); if(h&&!h.value) h.value=squidHourStr(new Date());
+    const a=$("#squidAmt"); if(a&&!a.value) a.value=squidAmount();
+  }
+}
 async function deskAddPlay(gid){
   const g=DB.games.find(x=>x.id===gid); if(!g||!isLiveGame(g)) return;
-  const pid=$("#playPlayer")?.value, type=$("#playType")?.value;
-  if(!pid||!type){ toast("先选类型和玩家"); return; }
+  const type=$("#playType")?.value;
+  if(!type){ toast("先选类型"); return; }
   g.plays=g.plays||[];
-  g.plays.push({id:uid(), type, player_id:pid, at:new Date().toISOString()});
+  if(type==="squid"){
+    const hhRaw=($("#squidHour")?.value||"").slice(0,2);
+    const hh=hhRaw?hhRaw.padStart(2,"0")+":00":squidHourStr(new Date());
+    const amount=parseFloat($("#squidAmt")?.value)||squidAmount();
+    const winners=[...document.querySelectorAll("#squidForm input[name=sqWin]:checked")].map(c=>c.value);
+    g.plays.push({id:uid(), type:"squid", hour:hh, amount, winners, at:new Date().toISOString()});
+  } else {
+    const pid=$("#playPlayer")?.value;
+    if(!pid){ toast("先选玩家"); return; }
+    g.plays.push({id:uid(), type, player_id:pid, at:new Date().toISOString()});
+  }
   await saveGameRow(g); renderDesk(); toast("🎉 玩法已记录");
 }
 async function deskUndoPlay(gid){
@@ -948,14 +1092,88 @@ async function deskUndoPlay(gid){
 async function grantPlayTickets(game){
   const grants=playTicketGrants(game);
   for(const gr of grants){
-    const t={id:uid(), player_id:gr.player_id, season_id:game.season_id, game_id:game.id, reason:gr.reason, count:gr.count, note:"玩法记录 · 结算自动发券", drawn:false, created_at:new Date().toISOString()};
+    const t={id:uid(), player_id:gr.player_id, season_id:game.season_id, game_id:game.id, reason:gr.reason, count:gr.count, note:"自动 · 玩法记录 · 结算自动发券", drawn:false, created_at:new Date().toISOString()};
     DB.tickets=DB.tickets||[]; DB.tickets.push(t); await dbPut("tickets",t).catch(()=>{});
   }
   return grants;
 }
+
+/* ============ 抽奖券自动发放 ============
+   - 准时券：实时牌桌首次买入时，若买入时刻 ≤ 当日截止时间（设置 ontimeCutoff，默认 19:30），立即自动发 1 张
+   - 满 4 小时 / 水下 / 老带新：结算时由 grantSettlementTickets 统一发放
+   - 赛季奖券：后台赛季区手动触发（预览 → 确认），同一赛季只发一次
+   - 自动券的 note 一律以「自动 · 」开头；券列表据此显示「自动」标签
+   - 防重复：整批结算券只发一次（games.auto_tickets_issued 标记）；准时券只在首次买入时发一次（seat_at 已确定则不再发） */
+function ontimeCutoff(){ return DB.settings.ontimeCutoff || "19:30"; }
+function cutoffDateTime(game){
+  const d=new Date((game.date||todayStr())+"T00:00:00");
+  const [h,m]=(ontimeCutoff()).split(":").map(x=>parseInt(x)||0);
+  d.setHours(h,m,0,0); return d;
+}
+function isOntime(game, atISO){
+  if(!atISO) return false;
+  const at=new Date(atISO); if(isNaN(at)) return false;
+  return at <= cutoffDateTime(game);
+}
+async function issueAutoTicket(pid, seasonId, gameId, reason, count, note){
+  const t={id:uid(), player_id:pid, season_id:seasonId, game_id:gameId, reason, count, note:"自动 · "+note, drawn:false, created_at:new Date().toISOString()};
+  DB.tickets=DB.tickets||[]; DB.tickets.push(t); await dbPut("tickets",t).catch(()=>{});
+  return t;
+}
+/* 结算时自动发券（满 4 小时 / 水下 / 老带新）。调用方须保证：本场已结算（profit 已写回）、且本批尚未发过（games.auto_tickets_issued） */
+async function grantSettlementTickets(game){
+  const issued=[];
+  const es=gameEntries(game.id);
+  for(const e of es){
+    const pid=e.player_id;
+    if(e.seat_at && e.left_at){
+      const hrs=(new Date(e.left_at)-new Date(e.seat_at))/3600000;
+      if(hrs>=4) issued.push(await issueAutoTicket(pid, game.season_id, game.id, "hours4", ticketRule("hours4"), "打满 4 小时"));
+    }
+    if((e.profit||0)<0) issued.push(await issueAutoTicket(pid, game.season_id, game.id, "water", ticketRule("water"), "当场水下"));
+    const p=DB.players.find(x=>x.id===pid);
+    if(p && p.referrer_id){
+      const settledN=DB.games.filter(g=>g.season_id===game.season_id && !isLiveGame(g) && gameEntries(g.id).some(x=>x.player_id===pid)).length;
+      if(settledN===2){
+        const dup=(DB.tickets||[]).some(t=>t.season_id===game.season_id && t.reason==="refer" && t.player_id===p.referrer_id && (t.note||"").includes("老带新（"+p.name+"）"));
+        if(!dup) issued.push(await issueAutoTicket(p.referrer_id, game.season_id, game.id, "refer", ticketRule("refer"), "老带新（"+p.name+"）"));
+      }
+    }
+  }
+  return issued;
+}
+/* 赛季奖券预览：榜首 → leader 张；倒数第一 → 场次达坚守门槛（默认 12 场）则 iron 张，否则 0 张 */
+function seasonAwardPreview(sid){
+  const {rows}=standings(sid);
+  if(!rows.length) return null;
+  const leader=rows[0], last=rows[rows.length-1];
+  const ironGames=DB.settings.ironGames ?? 12;
+  return { leader, last, ironGames, ironOk: last.games>=ironGames };
+}
+async function issueSeasonAwards(sid){
+  const s=DB.seasons.find(x=>x.id===sid); if(!s || s.awards_issued) return [];
+  const pv=seasonAwardPreview(sid); if(!pv) return [];
+  const out=[];
+  out.push(await issueAutoTicket(pv.leader.player.id, sid, null, "leader", ticketRule("leader"), "赛季积分榜首"));
+  if(pv.ironOk) out.push(await issueAutoTicket(pv.last.player.id, sid, null, "iron", ticketRule("iron"), "坚守奖"));
+  s.awards_issued=true; await dbPut("seasons",s).catch(()=>{}); await persist();
+  return out;
+}
 async function deskAddBuyin(eid,amt){
   const e=DB.entries.find(x=>x.id===eid); if(!e) return;
-  applyBuyin(e,amt,deskChannel); await saveEntryRow(e); renderDesk();
+  const isFirst=!(e.buyins||[]).length;
+  applyBuyin(e,amt,deskChannel);
+  if(isFirst){
+    const at=e.buyins[e.buyins.length-1].at;
+    e.seat_at=at;
+    const g=DB.games.find(x=>x.id===e.game_id);
+    if(g && isOntime(g, at)){
+      const n=ticketRule("ontime");
+      await issueAutoTicket(e.player_id, g.season_id, g.id, "ontime", n, "准时到场");
+      toast(`⏰ 准时到场 · 自动发券 ${n} 张`);
+    }
+  }
+  await saveEntryRow(e); renderDesk();
 }
 async function deskAddCustom(eid){
   const v=parseFloat($("#cb_"+eid)?.value);
@@ -970,11 +1188,11 @@ async function deskSetCashOut(eid){
   const e=DB.entries.find(x=>x.id===eid); if(!e) return;
   const raw=$("#co_"+eid)?.value;
   if(raw===""||raw===null||raw===undefined){ toast("先填离场金额（输光填 0）"); return; }
-  e.cash_out=parseFloat(raw)||0; await saveEntryRow(e); renderDesk(); toast("已离场结算");
+  e.cash_out=parseFloat(raw)||0; e.left_at=new Date().toISOString(); await saveEntryRow(e); renderDesk(); toast("已离场结算");
 }
 async function deskClearCashOut(eid){
   const e=DB.entries.find(x=>x.id===eid); if(!e) return;
-  e.cash_out=null; await saveEntryRow(e); renderDesk();
+  e.cash_out=null; e.left_at=null; await saveEntryRow(e); renderDesk();
 }
 async function deskRemovePlayer(eid){
   const e=DB.entries.find(x=>x.id===eid); if(!e) return;
@@ -985,7 +1203,7 @@ async function deskRemovePlayer(eid){
 }
 async function deskAddPlayer(gid){
   const pid=$("#deskAddSel")?.value; if(!pid) return;
-  const e={id:uid(), game_id:gid, player_id:pid, profit:0, buyins:[], cash_out:null};
+  const e={id:uid(), game_id:gid, player_id:pid, profit:0, buyins:[], cash_out:null, seat_at:null, left_at:null};
   DB.entries.push(e); await saveEntryRow(e); renderDesk();
 }
 async function finishLiveGame(gid){
@@ -994,7 +1212,7 @@ async function finishLiveGame(gid){
   /* 对账差额 ≠ 0 先弹确认（写明差额），不硬锁 */
   const diff=balanceDiff(g);
   if(Math.round(diff)!==0){
-    if(!confirm(`⚠️ 对账差额 ${diff>0?"+":"−"}$${Math.abs(Math.round(diff)).toLocaleString()}（全部买入 − 已离场带出 − 本场水费 $${(parseFloat(g.rake)||0).toLocaleString()}），不为 0。\n多半是买入或离场金额漏记/错记。仍要结束本场并结算吗？`)) return;
+    if(!confirm(`⚠️ 对账差额 ${diff>0?"+":"−"}$${Math.abs(Math.round(diff)).toLocaleString()}（全部买入 − 已离场带出 − 本场水费 $${(parseFloat(g.rake)||0).toLocaleString()} − 荷官小费 $${(parseFloat(g.dealer_tips)||0).toLocaleString()}），不为 0。\n多半是买入或离场金额漏记/错记。仍要结束本场并结算吗？`)) return;
   }
   const unset=es.filter(e=>!entrySettled(e));
   if(unset.length){
@@ -1004,12 +1222,17 @@ async function finishLiveGame(gid){
   const res=settleGame(g);
   await saveGameRow(g);
   for(const e of es) await saveEntryRow(e);
-  const grants=await grantPlayTickets(g);
+  let tkN=0;
+  if(!g.auto_tickets_issued){
+    g.auto_tickets_issued=true; await saveGameRow(g);
+    const grants=await grantPlayTickets(g);
+    const sgrants=await grantSettlementTickets(g);
+    tkN=[...grants,...sgrants].reduce((a,x)=>a+x.count,0);
+  }
   const newly=checkBadges(g.season_id,g); await persist();
   deskGameId=null;
   const champ=DB.players.find(p=>p.id===res[0]?.player_id);
-  const tkN=grants.reduce((a,x)=>a+x.count,0);
-  toast(`🏁 本场已结算！冠军 ${champ?.name||""}${tkN?` · 🎟️ 玩法自动发券 ${tkN} 张`:""}${newly.length?` · 🏅 新徽章 ×${newly.length}`:""}`);
+  toast(`🏁 本场已结算！冠军 ${champ?.name||""}${tkN?` · 🎟️ 自动发券 ${tkN} 张`:""}${newly.length?` · 🏅 新徽章 ×${newly.length}`:""}`);
   renderAdmin();
 }
 function addEntryRow(pid){
@@ -1081,6 +1304,18 @@ async function settleCredit(pid){
     if(ch) await saveEntryRow(e);
   }
   await persist(); toast(n?`✅ ${p.name} 的 ${n} 笔挂账已结清`:"没有未结挂账"); tabCredit();
+}
+
+/* --- 荷官小费汇总 --- */
+function tabDealer(){
+  const rows=dealerRows();
+  const totG=rows.reduce((a,r)=>a+r.games,0), totT=rows.reduce((a,r)=>a+r.tips,0);
+  $("#atab").innerHTML=`<div class="card"><h3>🃏 荷官小费汇总</h3>
+    <div class="note" style="margin:0 0 8px">按已结束场次统计：开局或牌桌里填的荷官姓名与小费会自动汇总到这里；未填荷官名的场次归入「未填」。纯展示，不用另外记账。</div>
+    ${rows.length?rows.map(r=>`<div class="kv"><span><b>${esc(r.name)}</b> <span style="color:var(--dim);font-size:12px">${r.games} 场</span></span><b style="color:var(--gold2)">$${r.tips.toLocaleString()}</b></div>`).join("")
+      +`<div class="kv"><span><b>合计</b></span><b>${totG} 场 · $${totT.toLocaleString()}</b></div>`
+    :`<div class="empty">还没有已结束场次的荷官记录</div>`}
+  </div>`;
 }
 
 /* --- 玩家管理 --- */
@@ -1164,7 +1399,26 @@ function tabSeason(){
     <div class="sect">赛季列表</div>
     ${DB.seasons.map(s=>{ const g=DB.games.filter(x=>x.season_id===s.id&&!isLiveGame(x)).length;
       return `<div class="kv"><span><b>${esc(s.name)}</b> <span style="color:var(--dim);font-size:12px">${s.start_date?esc(s.start_date)+" 至 "+esc(s.end_date||"")+" · ":""}${g}/${s.games_count} 场${s.status==="active"?' · <span style="color:var(--green)">进行中</span>':""}</span></span>
-      ${s.status!=="active"?`<button class="btn ghost small" style="width:auto;margin:0;padding:6px 12px" onclick="setActiveSeason('${s.id}')">设为当前</button>`:""}</div>`;}).join("")}`;
+      ${s.status!=="active"?`<button class="btn ghost small" style="width:auto;margin:0;padding:6px 12px" onclick="setActiveSeason('${s.id}')">设为当前</button>`:""}${s.awards_issued?`<span style="color:var(--green);font-size:12px">🏆 赛季奖券已发放</span>`:`<button class="btn ghost small" style="width:auto;margin:0;padding:6px 12px" onclick="showSeasonAwards('${s.id}')">🏆 发赛季奖券</button>`}</div>`;}).join("")}
+    <div id="awardBox"></div>`;
+}
+function showSeasonAwards(sid){
+  const s=DB.seasons.find(x=>x.id===sid);
+  const box=$("#awardBox"); if(!box) return;
+  const pv=seasonAwardPreview(sid);
+  if(!pv){ box.innerHTML=`<div class="card">该赛季暂无已结算场次，无法发放赛季奖券</div>`; return; }
+  if(s.awards_issued){ box.innerHTML=`<div class="card">🏆 该赛季奖券已发放，不可重复发放</div>`; return; }
+  box.innerHTML=`<div class="card"><h3>🏆 发放赛季奖券 · ${esc(s.name)}</h3>
+    <div class="kv"><span>🥇 赛季积分榜首 · ${esc(pv.leader.player.name)}</span><b>${ticketRule("leader")} 张</b></div>
+    <div class="kv"><span>👑 积分倒数第一 · ${esc(pv.last.player.name)}（${pv.last.games} 场${pv.ironOk?"":"，未满 "+pv.ironGames+" 场"}）</span><b>${pv.ironOk?ticketRule("iron")+" 张":"0 张"}</b></div>
+    <div class="note">确认后发放，同一赛季只发一次，不可撤销重发。</div>
+    <button class="btn" onclick="confirmSeasonAwards('${sid}')">确认发放</button></div>`;
+}
+async function confirmSeasonAwards(sid){
+  const out=await issueSeasonAwards(sid);
+  if(!out.length) toast("该赛季奖券已发放或无可发对象");
+  else toast(`🏆 赛季奖券已发放 ${out.reduce((a,x)=>a+x.count,0)} 张`);
+  tabSeason();
 }
 async function addSeason(){
   const name=$("#sName").value.trim()||`OMT战队新赛季`;
@@ -1188,6 +1442,9 @@ function tabSetup(){
     <label class="f">买入系数（档:系数）</label><input class="f" id="setMult" value='${esc(Object.entries(st.buyinMult||{}).map(([k,v])=>k+":"+v).join(", "))}' placeholder="标准:1, 深筹:1.5, 豪客:2">
     <label class="f">巨鲸线（单场盈利≥此数得徽章 $）</label><input class="f" id="setWhale" type="number" value="${st.whaleLine||800}">
     <label class="f">Credit 挂账上限（未结挂账达到此数时牌桌提醒 $）</label><input class="f" id="setCredit" type="number" value="${st.creditLimit??3000}">
+    <label class="f">准时截止时间（首次买入在此时间前算准时到场，默认 19:30）</label><input class="f" id="setCutoff" type="time" value="${st.ontimeCutoff||"19:30"}">
+    <label class="f">整点鱿鱼金额（每整点一局，默认 $10）</label><input class="f" id="setSquidAmt" type="number" value="${st.squidAmount??10}">
+    <label class="f" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="setSquidSound" ${st.squidSound?"checked":""} style="width:auto"> 🔔 鱿鱼提示音（整点横幅出现时播一声；浏览器要求先点过页面才有效）</label>
     <button class="btn" onclick="saveSettings()">保存规则</button></div>
   <div class="card"><h3>🔐 管理密码</h3>
     <label class="f">新密码</label><input class="f" id="setPw" type="password" placeholder="留空不改">
@@ -1207,6 +1464,9 @@ async function saveSettings(){
   DB.settings.attendancePts=parseInt($("#setAtt").value)||1;
   DB.settings.buyinMult=mult; DB.settings.whaleLine=parseInt($("#setWhale").value)||800;
   DB.settings.creditLimit=parseInt($("#setCredit")?.value); if(isNaN(DB.settings.creditLimit)||DB.settings.creditLimit<0) DB.settings.creditLimit=3000;
+  DB.settings.ontimeCutoff=$("#setCutoff")?.value||"19:30";
+  DB.settings.squidAmount=parseFloat($("#setSquidAmt")?.value); if(isNaN(DB.settings.squidAmount)||DB.settings.squidAmount<0) DB.settings.squidAmount=10;
+  DB.settings.squidSound=!!$("#setSquidSound")?.checked;
   await dbPut("settings",{key:"_bundle",value:DB.settings}).catch(()=>{});
   if(STORE.mode==="cloud") for(const [k,v] of Object.entries(DB.settings)) await supa.from("settings").upsert({key:k,value:v});
   await persist(); toast("规则已保存");
@@ -1226,7 +1486,7 @@ function exportJSON(){
   a.download="walnut-s4-backup.json"; a.click(); toast("已导出");
 }
 function exportSQL(){
-  const sql=`-- 在 Supabase SQL Editor 里运行一次\ncreate table if not exists players(id text primary key,name text,avatar text,img text,title text,referrer_id text,active boolean);\ncreate table if not exists seasons(id text primary key,name text,games_count int,status text,start_date date,end_date date);\ncreate table if not exists games(id text primary key,season_id text,date date,buyin_tier text,status text,rake numeric,plays jsonb);\nalter table games add column if not exists rake numeric;\nalter table games add column if not exists plays jsonb;\ncreate table if not exists entries(id text primary key,game_id text,player_id text,profit numeric,buyins jsonb,cash_out numeric);\ncreate table if not exists player_badges(player_id text,badge_id text,game_id text,awarded_at timestamptz,primary key(player_id,badge_id));\ncreate table if not exists tickets(id text primary key,season_id text,game_id text,player_id text,reason text,count int,note text,drawn boolean,created_at timestamptz);\ncreate table if not exists draws(id text primary key,season_id text,prize text,winner_pid text,ticket_id text,pool_size int,seed text,created_at timestamptz);\ncreate table if not exists settings(key text primary key,value jsonb);\nalter table players enable row level security;alter table seasons enable row level security;alter table games enable row level security;alter table entries enable row level security;alter table player_badges enable row level security;alter table settings enable row level security;\ncreate policy "open" on players for all using(true) with check(true);\ncreate policy "open" on seasons for all using(true) with check(true);\ncreate policy "open" on games for all using(true) with check(true);\ncreate policy "open" on entries for all using(true) with check(true);\ncreate policy "open" on player_badges for all using(true) with check(true);\ncreate policy "open" on tickets for all using(true) with check(true);\ncreate policy "open" on draws for all using(true) with check(true);\ncreate policy "open" on settings for all using(true) with check(true);`;
+  const sql=`-- 在 Supabase SQL Editor 里运行一次\ncreate table if not exists players(id text primary key,name text,avatar text,img text,title text,referrer_id text,active boolean);\ncreate table if not exists seasons(id text primary key,name text,games_count int,status text,start_date date,end_date date);\ncreate table if not exists games(id text primary key,season_id text,date date,buyin_tier text,status text,rake numeric,plays jsonb,dealer text,dealer_tips numeric,squid_ack jsonb);\nalter table games add column if not exists rake numeric;\nalter table games add column if not exists plays jsonb;\nalter table games add column if not exists dealer text;\nalter table games add column if not exists dealer_tips numeric;\nalter table games add column if not exists squid_ack jsonb;\nalter table games add column if not exists created_at timestamptz;\nalter table games add column if not exists finished_at timestamptz;\ncreate table if not exists entries(id text primary key,game_id text,player_id text,profit numeric,buyins jsonb,cash_out numeric);\nalter table entries add column if not exists seat_at timestamptz;\nalter table entries add column if not exists left_at timestamptz;\nalter table games add column if not exists auto_tickets_issued boolean;\nalter table seasons add column if not exists awards_issued boolean;\ncreate table if not exists player_badges(player_id text,badge_id text,game_id text,awarded_at timestamptz,primary key(player_id,badge_id));\ncreate table if not exists tickets(id text primary key,season_id text,game_id text,player_id text,reason text,count int,note text,drawn boolean,created_at timestamptz);\ncreate table if not exists draws(id text primary key,season_id text,prize text,winner_pid text,ticket_id text,pool_size int,seed text,created_at timestamptz);\ncreate table if not exists settings(key text primary key,value jsonb);\nalter table players enable row level security;alter table seasons enable row level security;alter table games enable row level security;alter table entries enable row level security;alter table player_badges enable row level security;alter table settings enable row level security;\ncreate policy "open" on players for all using(true) with check(true);\ncreate policy "open" on seasons for all using(true) with check(true);\ncreate policy "open" on games for all using(true) with check(true);\ncreate policy "open" on entries for all using(true) with check(true);\ncreate policy "open" on player_badges for all using(true) with check(true);\ncreate policy "open" on tickets for all using(true) with check(true);\ncreate policy "open" on draws for all using(true) with check(true);\ncreate policy "open" on settings for all using(true) with check(true);`;
   navigator.clipboard.writeText(sql).then(()=>toast("建表 SQL 已复制")).catch(()=>prompt("复制这段 SQL:",sql));
 }
 
@@ -1259,7 +1519,7 @@ function tabTickets(){
     <button class="btn" onclick="doDraw()">🎲 开奖</button>
     <div id="drawRes"></div></div>
   <div class="card"><h3>🧾 发放明细</h3>
-    ${ledger.map(t=>`<div class="kv"><span>${reasonOf(t.reason).icon} ${pName(t.player_id)} <span style="color:var(--dim);font-size:12px">${esc((t.created_at||"").slice(0,10))}${t.note?" · "+esc(t.note):""}${t.drawn?' · <span style="color:var(--green)">已开奖</span>':""}</span></span>
+    ${ledger.map(t=>`<div class="kv"><span>${reasonOf(t.reason).icon} ${pName(t.player_id)} ${(t.note||"").startsWith("自动")?'<span class="pill on">自动</span>':""} <span style="color:var(--dim);font-size:12px">${esc((t.created_at||"").slice(0,10))}${t.note?" · "+esc(t.note):""}${t.drawn?' · <span style="color:var(--green)">已开奖</span>':""}</span></span>
       <span><b>+${t.count}</b> <button class="rm" onclick="delTicket('${t.id}')">×</button></span></div>`).join("")||'<div class="empty">暂无</div>'}</div>
   <div class="card"><h3>⚙️ 发券规则（每种理由默认张数）</h3>
     ${TICKET_REASONS.map(r=>`<label class="f" style="display:flex;justify-content:space-between;align-items:center">${r.icon} ${esc(r.label)}<input class="f" style="width:80px;margin:0" type="number" min="0" id="rule_${r.id}" value="${ticketRule(r.id)}"></label>`).join("")}
@@ -1342,9 +1602,9 @@ window.saveTicketRules=saveTicketRules; window.tkReasonChg=tkReasonChg;
 window.doLogin=doLogin; window.logout=logout; window.setTab=setTab;
 window.addEntryRow=addEntryRow; window.delEntryRow=delEntryRow; window.updateEntryPreview=updateEntryPreview;
 window.saveGame=saveGame; window.addPlayer=addPlayer; window.togglePlayer=togglePlayer; window.manualBadge=manualBadge;
-window.addSeason=addSeason; window.setActiveSeason=setActiveSeason;
+window.addSeason=addSeason; window.setActiveSeason=setActiveSeason; window.showSeasonAwards=showSeasonAwards; window.confirmSeasonAwards=confirmSeasonAwards;
 window.openDesk=openDesk; window.renderDesk=renderDesk; window.startLiveGame=startLiveGame; window.finishLiveGame=finishLiveGame;
-window.deskSetChannel=deskSetChannel; window.deskSetRake=deskSetRake; window.deskAddPlay=deskAddPlay; window.deskUndoPlay=deskUndoPlay;
+window.deskSetChannel=deskSetChannel; window.deskSetRake=deskSetRake; window.deskSetDealer=deskSetDealer; window.deskAddPlay=deskAddPlay; window.deskUndoPlay=deskUndoPlay;
 window.settleCredit=settleCredit;
 window.deskAddBuyin=deskAddBuyin; window.deskAddCustom=deskAddCustom; window.deskRemoveBuyin=deskRemoveBuyin;
 window.deskSetCashOut=deskSetCashOut; window.deskClearCashOut=deskClearCashOut; window.deskRemovePlayer=deskRemovePlayer; window.deskAddPlayer=deskAddPlayer;
@@ -1373,13 +1633,17 @@ function startPolling(){
   await initSupa();
   STORE = supa ? Cloud : Local;
   DB = await STORE.load();
-  // 数据迁移：历史纯数字 buyins 流水 → {amt, ch:"cash", paid:true} 对象形态；补齐 games.rake/plays 与 settings.creditLimit
+  // 数据迁移：历史纯数字 buyins 流水 → {amt, ch:"cash", paid:true} 对象形态；补齐 games.rake/plays/dealer/dealer_tips 与 settings.creditLimit
   const migrated=migrateBuyins();
   if(migrated&&STORE.mode==="cloud"){ for(const e of DB.entries) await dbPut("entries",e).catch(()=>{}); }
   // 赛季信息校正：OMT战队第一赛季日期固定为 2026-10-25 至 2026-11-30
   (DB.seasons||[]).forEach(s=>{ if(s.name==="OMT战队第一赛季"||s.id==="s4"){ s.start_date="2026-10-25"; s.end_date="2026-11-30"; } });
-  if(!DB.settings) DB.settings={adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000};
+  if(!DB.settings) DB.settings={adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000,ontimeCutoff:"19:30",ironGames:12,squidAmount:10,squidSound:false};
   if(DB.settings.creditLimit==null) DB.settings.creditLimit=3000;
+  if(DB.settings.ontimeCutoff==null) DB.settings.ontimeCutoff="19:30";
+  if(DB.settings.ironGames==null) DB.settings.ironGames=12;
+  if(DB.settings.squidAmount==null) DB.settings.squidAmount=10;
+  if(DB.settings.squidSound==null) DB.settings.squidSound=false;
   DB.tickets=DB.tickets||[]; DB.draws=DB.draws||[];
   if(!DB.settings.ticketRules) DB.settings.ticketRules={...DEFAULT_TICKETS};
   // 演示奖品若从未改动过（旧赛季排名奖品），换成新赛季抽奖奖品结构
