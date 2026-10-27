@@ -168,6 +168,7 @@ details.legacy>summary{cursor:pointer;color:var(--dim);font-size:14px;font-weigh
 <nav class="bottomnav" id="bottomnav">
   <a href="#/" data-nav="board"><span class="ni">📊</span>排行</a>
   <a href="#/live" data-nav="live"><span class="ni">🔴</span>今晚</a>
+  <a href="#/meetup" data-nav="meetup"><span class="ni">🗓️</span>组局</a>
   <a href="#/tickets" data-nav="tickets"><span class="ni">🎟️</span>抽奖</a>
   <a href="#/prizes" data-nav="prizes"><span class="ni">🎁</span>奖品</a>
   <a href="#/admin" data-nav="admin"><span class="ni">⚙️</span>管理</a>
@@ -230,8 +231,9 @@ function seedData(){
   return {
     players, seasons:[season], games, entries, player_badges:[],
     tickets:[], draws:[],
-    settings:{ adminPw:"walnut888", attendancePts:1, buyinMult:{"标准":1,"深筹":1.5,"豪客":2}, whaleLine:800, creditLimit:3000, ontimeCutoff:"19:30", ironGames:12, squidAmount:10, squidSound:false,
+    settings:{ adminPw:"walnut888", attendancePts:1, buyinMult:{"标准":1,"深筹":1.5,"豪客":2}, whaleLine:800, creditLimit:3000, ontimeCutoff:"19:30", ironGames:12, squidAmount:10, squidSound:false, quorum:6,
       ticketRules:{ontime:1,water:1,hours4:1,badbeat:1,bomb:2,flush:4,refer:2,leader:3,iron:8} },
+    meetups:[], rsvps:[],
     prizes:[
       {e:"🏆",t:"一等奖",d:"iPhone 折叠屏 1TB · 全新 × 1 台",top:1},
       {e:"🎟️",t:"二等奖",d:"OMT 幸运码 1000 × 2 名",top:0},
@@ -275,12 +277,14 @@ const Cloud = {
     ]);
     const s={}; (settings.data||[]).forEach(r=>s[r.key]=r.value);
     const prizes = s.prizes || seedData().prizes;
-    let tickets=[], draws=[];
+    let tickets=[], draws=[], meetups=[], rsvps=[];
     try{ const r=await supa.from("tickets").select("*"); if(!r.error) tickets=r.data||[]; }catch(e){}
     try{ const r=await supa.from("draws").select("*"); if(!r.error) draws=r.data||[]; }catch(e){}
+    try{ const r=await supa.from("meetups").select("*"); if(!r.error) meetups=r.data||[]; }catch(e){}
+    try{ const r=await supa.from("rsvps").select("*"); if(!r.error) rsvps=r.data||[]; }catch(e){}
     return { players:players.data||[], seasons:seasons.data||[], games:games.data||[],
-      entries:entries.data||[], player_badges:pb.data||[], tickets, draws,
-      settings:Object.assign({adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000,ontimeCutoff:"19:30",ironGames:12,squidAmount:10,squidSound:false}, s),
+      entries:entries.data||[], player_badges:pb.data||[], tickets, draws, meetups, rsvps,
+      settings:Object.assign({adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000,ontimeCutoff:"19:30",ironGames:12,squidAmount:10,squidSound:false,quorum:6}, s),
       prizes };
   },
   async save(){},
@@ -572,7 +576,7 @@ function migrateBuyins(){
   (DB.entries||[]).forEach(e=>{ if(e.seat_at===undefined) e.seat_at=null; if(e.left_at===undefined) e.left_at=null; });
   (DB.games||[]).forEach(g=>{ if(g.plays===undefined) g.plays=[]; if(g.rake===undefined) g.rake=0; if(g.dealer===undefined) g.dealer=""; if(g.dealer_tips===undefined) g.dealer_tips=0; if(g.auto_tickets_issued===undefined) g.auto_tickets_issued=false; if(g.squid_ack===undefined) g.squid_ack=[]; (g.plays||[]).forEach(pl=>{ if(pl.type==="squid"){ if(!Array.isArray(pl.winners)) pl.winners = pl.player_id ? [pl.player_id] : []; if(!pl.hour) pl.hour = pl.at ? pl.at.slice(11,13)+":00" : ""; if(pl.amount==null) pl.amount = (DB.settings&&DB.settings.squidAmount!=null) ? DB.settings.squidAmount : 10; } }); });
   (DB.seasons||[]).forEach(s=>{ if(s.awards_issued===undefined) s.awards_issued=false; });
-  if(DB.settings){ if(DB.settings.creditLimit==null) DB.settings.creditLimit=3000; if(DB.settings.ontimeCutoff==null) DB.settings.ontimeCutoff="19:30"; if(DB.settings.ironGames==null) DB.settings.ironGames=12; if(DB.settings.squidAmount==null) DB.settings.squidAmount=10; if(DB.settings.squidSound==null) DB.settings.squidSound=false; }
+  if(DB.settings){ if(DB.settings.creditLimit==null) DB.settings.creditLimit=3000; if(DB.settings.ontimeCutoff==null) DB.settings.ontimeCutoff="19:30"; if(DB.settings.ironGames==null) DB.settings.ironGames=12; if(DB.settings.squidAmount==null) DB.settings.squidAmount=10; if(DB.settings.squidSound==null) DB.settings.squidSound=false; if(DB.settings.quorum==null) DB.settings.quorum=6; }
   return changed;
 }
 function newLiveGame(seasonId, date, tier, pids, dealer, tips){
@@ -590,6 +594,159 @@ function settleGame(game){
   gameEntries(game.id).forEach(e=>{ e.profit=(entrySettled(e)?parseFloat(e.cash_out):0)-buyinTotal(e); });
   game.status="finished"; game.finished_at=new Date().toISOString();
   return gameResults(game);
+}
+
+/* ============ 组局工作台 ============
+   v1：每周组局板 + 玩家确认（RSVP），对标每周组局“提前确认玩家时间、让每一场刚好凑齐”。
+   不做多账号登录：玩家在组局页选自己的名字确认，后台可纠正任何人的状态。
+   组局页只显示名字与确认状态，不出现任何金额（玩家隐私口径）。 */
+const RSVP_TXT = {going:"能来", maybe:"待定", no:"来不了"};
+const MEETUP_WEEKDAYS = [0,3,5]; // 周日、周三、周五（JS getDay）
+function quorum(){ return DB.settings.quorum ?? 6; }
+function meetupIdFor(date){ return "m-"+date; }
+function weekdayName(dateStr){
+  const [y,m,d]=dateStr.split("-").map(x=>parseInt(x,10));
+  return ["周日","周一","周二","周三","周四","周五","周六"][new Date(y,m-1,d).getDay()];
+}
+function meetupCounts(m){
+  const c={going:0,maybe:0,no:0};
+  (DB.rsvps||[]).filter(r=>r.meetup_id===m.id).forEach(r=>{ if(c[r.status]!=null) c[r.status]++; });
+  return c;
+}
+function meetupStatus(m){
+  if(m.status==="hidden") return "hidden";
+  if(m.date < todayStr()) return "done";
+  return meetupCounts(m).going >= quorum() ? "ready" : "open";
+}
+function meetupStatusTxt(m){
+  const st=meetupStatus(m);
+  if(st==="hidden") return "";
+  if(st==="done") return "已结束";
+  if(st==="ready") return "✅ 已成局";
+  return "招募中 · 还差 "+(quorum()-meetupCounts(m).going)+" 人";
+}
+async function syncMeetupStatus(m){
+  const st=meetupStatus(m);
+  if(m.status!==st){ m.status=st; await dbPut("meetups",m).catch(()=>{}); }
+}
+/* 生成未来 14 天内的周三/五/日组局卡片，id 由日期派生，重复生成不产生重复 */
+function ensureMeetups(){
+  DB.meetups=DB.meetups||[]; DB.rsvps=DB.rsvps||[];
+  const now=new Date(); const added=[];
+  for(let i=0;i<14;i++){
+    const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()+i);
+    if(!MEETUP_WEEKDAYS.includes(d.getDay())) continue;
+    const ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const id=meetupIdFor(ds);
+    if(!DB.meetups.some(x=>x.id===id)){ const m={id,date:ds,status:"open",note:"",created_at:new Date().toISOString()}; DB.meetups.push(m); added.push(m); }
+  }
+  return added;
+}
+async function saveMeetupRow(m){ await dbPut("meetups",m).catch(()=>{}); await persist(); }
+async function setRSVP(meetupId, pid, status){
+  DB.rsvps=DB.rsvps||[];
+  const now=new Date().toISOString();
+  let r=DB.rsvps.find(x=>x.meetup_id===meetupId && x.player_id===pid);
+  if(r){ r.status=status; r.updated_at=now; }
+  else { r={meetup_id:meetupId, player_id:pid, status, updated_at:now}; DB.rsvps.push(r); }
+  await dbPut("rsvps",r).catch(()=>{});
+  const m=DB.meetups.find(x=>x.id===meetupId);
+  if(m) await syncMeetupStatus(m);
+  await persist(); renderMeetups();
+}
+function rememberRsvpMe(pid){ try{ localStorage.setItem("walnut_rsvp_me",pid||""); }catch(e){} }
+function rsvpSelf(mid, status){
+  const sel=$("#muMe-"+mid); const pid=sel?sel.value:"";
+  if(!pid){ toast("先选你的名字"); return; }
+  rememberRsvpMe(pid); setRSVP(mid,pid,status);
+}
+function fixRsvp(mid){
+  const pid=$("#muFixP-"+mid)?.value, st=$("#muFixS-"+mid)?.value;
+  if(!pid){ toast("先选玩家"); return; }
+  setRSVP(mid,pid,st);
+}
+async function createMeetup(){
+  const date=$("#muDate")?.value||todayStr();
+  const note=($("#muNote")?.value||"").trim();
+  const id=meetupIdFor(date);
+  if(DB.meetups.some(x=>x.id===id)){ toast("这天已有组局"); return; }
+  const m={id,date,status:date<todayStr()?"done":"open",note,created_at:new Date().toISOString()};
+  DB.meetups.push(m); await saveMeetupRow(m); toast("组局已创建"); renderMeetups();
+}
+async function setMeetupNote(id, note){
+  const m=DB.meetups.find(x=>x.id===id); if(!m) return;
+  m.note=note; await saveMeetupRow(m);
+}
+async function delMeetup(id){
+  if(!confirm("删除这个组局？该组局的确认记录也会一起删除。")) return;
+  // 删除改为隐藏标记：自动生成按 id 幂等，物理删除后下次渲染会把这张卡复活；保留行作 tombstone 可防复活
+  const m=DB.meetups.find(x=>x.id===id);
+  if(m){ m.status="hidden"; await dbPut("meetups",m).catch(()=>{}); }
+  DB.rsvps=(DB.rsvps||[]).filter(x=>x.meetup_id!==id);
+  if(STORE.mode==="cloud"){ await supa.from("rsvps").delete().eq("meetup_id",id).catch(()=>{}); }
+  await persist(); renderMeetups();
+}
+let meetupPrefill=null;
+function meetupGoingPids(mid){ return (DB.rsvps||[]).filter(r=>r.meetup_id===mid && r.status==="going").map(r=>r.player_id); }
+function openGameFromMeetup(mid){
+  const m=DB.meetups.find(x=>x.id===mid); if(!m) return;
+  const pids=meetupGoingPids(mid);
+  if(pids.length<2){ toast("能来人数不足 2 人，先等招募"); return; }
+  meetupPrefill={pids, date:m.date};
+  adminTab="entry"; location.hash="#/admin"; renderAdmin();
+}
+function renderMeetups(){
+  const added=ensureMeetups();
+  const v=$("#view");
+  let me=""; try{ me=localStorage.getItem("walnut_rsvp_me")||""; }catch(e){}
+  const players=DB.players.filter(p=>p.active);
+  const list=[...(DB.meetups||[])].filter(m=>m.status!=="hidden").sort((a,b)=>a.date<b.date?-1:1);
+  const nameOf=pid=>{ const p=DB.players.find(x=>x.id===pid); return p?p.name:"?"; };
+  const avOf=pid=>{ const p=DB.players.find(x=>x.id===pid); return p?avMini(p):""; };
+  v.innerHTML=`
+    <h2 class="page">🗓️ 组局工作台</h2>
+    <div class="note">每周三、五、日 19:00–次日 03:00。选自己的名字确认能不能来，人数够了就成局。</div>
+    ${adminAuthed?`<div class="card"><h3>➕ 新建组局</h3>
+      <label class="f">日期</label><input class="f" type="date" id="muDate" value="${todayStr()}">
+      <label class="f">备注（可选）</label><input class="f" id="muNote" placeholder="如：深筹局 / 新人局">
+      <button class="btn" onclick="createMeetup()">创建组局</button></div>`:""}
+    ${list.length?list.map(m=>{
+      const c=meetupCounts(m);
+      const st=meetupStatus(m);
+      const names=st2=>(DB.rsvps||[]).filter(r=>r.meetup_id===m.id&&r.status===st2).map(r=>`<span class="chip" style="cursor:default">${avOf(r.player_id)}${esc(nameOf(r.player_id))}</span>`).join("")||`<span style="color:var(--dim);font-size:13px">暂无</span>`;
+      const my=me?(DB.rsvps||[]).find(r=>r.meetup_id===m.id&&r.player_id===me):null;
+      return `<div class="card">
+        <div class="lt"><b>📅 ${esc(m.date)} ${weekdayName(m.date)} · 19:00–次日 03:00</b></div>
+        <div style="margin:6px 0"><span class="pill ${st==="ready"?"on":st==="done"?"off":""}">${meetupStatusTxt(m)}</span></div>
+        ${m.note?`<div style="color:var(--dim);font-size:13px;margin-bottom:6px">📝 ${esc(m.note)}</div>`:""}
+        <div class="kv"><span>能来</span><b>${c.going} 人</b></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px">${names("going")}</div>
+        <div class="kv"><span>待定</span><b>${c.maybe} 人</b></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px">${names("maybe")}</div>
+        <div class="kv"><span>来不了</span><b>${c.no} 人</b></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px">${names("no")}</div>
+        ${st==="done"?"":`<label class="f">我是</label><select class="f" id="muMe-${m.id}" onchange="rememberRsvpMe(this.value)">
+          <option value="">选你的名字…</option>
+          ${players.map(p=>`<option value="${p.id}"${p.id===me?" selected":""}>${esc(p.name)}</option>`).join("")}</select>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn small" onclick="rsvpSelf('${m.id}','going')">✅ 能来</button>
+          <button class="btn ghost small" onclick="rsvpSelf('${m.id}','maybe')">🤔 待定</button>
+          <button class="btn ghost small" onclick="rsvpSelf('${m.id}','no')">❌ 来不了</button>
+        </div>
+        ${my?`<div class="note">你当前状态：${RSVP_TXT[my.status]}</div>`:""}`}
+        ${adminAuthed?`<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
+          <label class="f">备注</label><input class="f" value="${esc(m.note||"")}" onchange="setMeetupNote('${m.id}',this.value)">
+          <label class="f">后台纠正他人状态</label><div style="display:flex;gap:6px;flex-wrap:wrap">
+            <select class="f" id="muFixP-${m.id}" style="flex:1"><option value="">选玩家…</option>${players.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select>
+            <select class="f" id="muFixS-${m.id}"><option value="going">能来</option><option value="maybe">待定</option><option value="no">来不了</option></select>
+            <button class="btn small" onclick="fixRsvp('${m.id}')">设定</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn small" onclick="openGameFromMeetup('${m.id}')">🔴 用此名单开局</button>
+            <button class="btn ghost small danger" onclick="delMeetup('${m.id}')">删除组局</button></div></div>`:""}
+      </div>`; }).join(""):`<div class="empty">还没有组局</div>`}`;
+  const dirty=list.filter(m=>m.status!==meetupStatus(m));
+  if(dirty.length){ dirty.forEach(m=>{ m.status=meetupStatus(m); dbPut("meetups",m).catch(()=>{}); }); persist(); }
+  if(added.length){ (async()=>{ for(const m of added) await dbPut("meetups",m).catch(()=>{}); await persist(); })(); }
 }
 
 /* ============ 公开展示渲染 ============ */
@@ -899,21 +1056,22 @@ function tabEntry(){
   const s=activeSeason();
   const tiers=Object.keys(DB.settings.buyinMult||{"标准":1});
   const players=DB.players.filter(p=>p.active);
+  const pre=meetupPrefill; meetupPrefill=null;
   $("#atab").innerHTML=`
     ${liveListHTML()}
     <div id="desk"></div>
     <div class="card"><h3>➕ 开新场次（实时录入）</h3>
     <label class="f">赛季</label><select class="f" id="nSeason">${DB.seasons.map(x=>`<option value="${x.id}"${x.id===s?.id?" selected":""}>${esc(x.name)}</option>`).join("")}</select>
-    <label class="f">日期</label><input class="f" type="date" id="nDate" value="${todayStr()}">
+    <label class="f">日期</label><input class="f" type="date" id="nDate" value="${pre?pre.date:todayStr()}">
     <label class="f">买入档</label><select class="f" id="nTier">${tiers.map(t=>`<option>${esc(t)}</option>`).join("")}</select>
     <label class="f">入座玩家（多选）</label>
     <div id="nPlayers" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
-      ${players.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:14px"><input type="checkbox" value="${p.id}"> ${avMini(p)}${esc(p.name)}</label>`).join("")}</div>
+      ${players.map(p=>`<label style="display:flex;align-items:center;gap:6px;font-size:14px"><input type="checkbox" value="${p.id}"${pre&&pre.pids.includes(p.id)?" checked":""}> ${avMini(p)}${esc(p.name)}</label>`).join("")}</div>
     <label class="f">荷官姓名（可选）</label><input class="f" id="nDealer" list="dealerList" placeholder="如：阿强">
     <datalist id="dealerList">${dealerNames().map(d=>`<option value="${esc(d)}">`).join("")}</datalist>
     <label class="f">荷官小费合计 $（可选，直播中可再改）</label><input class="f" type="number" id="nTips" placeholder="0">
     <button class="btn" onclick="startLiveGame()">🔴 开局（进行中）</button>
-    <div class="note">开局后在上方牌桌里实时记买入和离场；玩家在「今晚」页能实时看到在桌状态。</div></div>
+    ${pre?`<div class="note">已从组局预填 ${pre.pids.length} 位能来玩家，可再勾选或取消。</div>`:""}<div class="note">开局后在上方牌桌里实时记买入和离场；玩家在「今晚」页能实时看到在桌状态。</div></div>
     ${historyHTML()}
     <details class="legacy"><summary>⌨️ 补录已结束场次（直接录盈亏 · 旧方式）</summary>
     <div class="card"><h3>📝 录入一场战绩</h3>
@@ -1444,6 +1602,7 @@ function tabSetup(){
     <label class="f">Credit 挂账上限（未结挂账达到此数时牌桌提醒 $）</label><input class="f" id="setCredit" type="number" value="${st.creditLimit??3000}">
     <label class="f">准时截止时间（首次买入在此时间前算准时到场，默认 19:30）</label><input class="f" id="setCutoff" type="time" value="${st.ontimeCutoff||"19:30"}">
     <label class="f">整点鱿鱼金额（每整点一局，默认 $10）</label><input class="f" id="setSquidAmt" type="number" value="${st.squidAmount??10}">
+    <label class="f">成局人数（组局页能来人数达到此数即成局，默认 6）</label><input class="f" id="setQuorum" type="number" value="${st.quorum??6}">
     <label class="f" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="setSquidSound" ${st.squidSound?"checked":""} style="width:auto"> 🔔 鱿鱼提示音（整点横幅出现时播一声；浏览器要求先点过页面才有效）</label>
     <button class="btn" onclick="saveSettings()">保存规则</button></div>
   <div class="card"><h3>🔐 管理密码</h3>
@@ -1467,6 +1626,7 @@ async function saveSettings(){
   DB.settings.ontimeCutoff=$("#setCutoff")?.value||"19:30";
   DB.settings.squidAmount=parseFloat($("#setSquidAmt")?.value); if(isNaN(DB.settings.squidAmount)||DB.settings.squidAmount<0) DB.settings.squidAmount=10;
   DB.settings.squidSound=!!$("#setSquidSound")?.checked;
+  DB.settings.quorum=parseInt($("#setQuorum")?.value); if(isNaN(DB.settings.quorum)||DB.settings.quorum<2) DB.settings.quorum=6;
   await dbPut("settings",{key:"_bundle",value:DB.settings}).catch(()=>{});
   if(STORE.mode==="cloud") for(const [k,v] of Object.entries(DB.settings)) await supa.from("settings").upsert({key:k,value:v});
   await persist(); toast("规则已保存");
@@ -1486,7 +1646,7 @@ function exportJSON(){
   a.download="walnut-s4-backup.json"; a.click(); toast("已导出");
 }
 function exportSQL(){
-  const sql=`-- 在 Supabase SQL Editor 里运行一次\ncreate table if not exists players(id text primary key,name text,avatar text,img text,title text,referrer_id text,active boolean);\ncreate table if not exists seasons(id text primary key,name text,games_count int,status text,start_date date,end_date date);\ncreate table if not exists games(id text primary key,season_id text,date date,buyin_tier text,status text,rake numeric,plays jsonb,dealer text,dealer_tips numeric,squid_ack jsonb);\nalter table games add column if not exists rake numeric;\nalter table games add column if not exists plays jsonb;\nalter table games add column if not exists dealer text;\nalter table games add column if not exists dealer_tips numeric;\nalter table games add column if not exists squid_ack jsonb;\nalter table games add column if not exists created_at timestamptz;\nalter table games add column if not exists finished_at timestamptz;\ncreate table if not exists entries(id text primary key,game_id text,player_id text,profit numeric,buyins jsonb,cash_out numeric);\nalter table entries add column if not exists seat_at timestamptz;\nalter table entries add column if not exists left_at timestamptz;\nalter table games add column if not exists auto_tickets_issued boolean;\nalter table seasons add column if not exists awards_issued boolean;\ncreate table if not exists player_badges(player_id text,badge_id text,game_id text,awarded_at timestamptz,primary key(player_id,badge_id));\ncreate table if not exists tickets(id text primary key,season_id text,game_id text,player_id text,reason text,count int,note text,drawn boolean,created_at timestamptz);\ncreate table if not exists draws(id text primary key,season_id text,prize text,winner_pid text,ticket_id text,pool_size int,seed text,created_at timestamptz);\ncreate table if not exists settings(key text primary key,value jsonb);\nalter table players enable row level security;alter table seasons enable row level security;alter table games enable row level security;alter table entries enable row level security;alter table player_badges enable row level security;alter table settings enable row level security;\ncreate policy "open" on players for all using(true) with check(true);\ncreate policy "open" on seasons for all using(true) with check(true);\ncreate policy "open" on games for all using(true) with check(true);\ncreate policy "open" on entries for all using(true) with check(true);\ncreate policy "open" on player_badges for all using(true) with check(true);\ncreate policy "open" on tickets for all using(true) with check(true);\ncreate policy "open" on draws for all using(true) with check(true);\ncreate policy "open" on settings for all using(true) with check(true);`;
+  const sql=`-- 在 Supabase SQL Editor 里运行一次\ncreate table if not exists players(id text primary key,name text,avatar text,img text,title text,referrer_id text,active boolean);\ncreate table if not exists seasons(id text primary key,name text,games_count int,status text,start_date date,end_date date);\ncreate table if not exists games(id text primary key,season_id text,date date,buyin_tier text,status text,rake numeric,plays jsonb,dealer text,dealer_tips numeric,squid_ack jsonb);\nalter table games add column if not exists rake numeric;\nalter table games add column if not exists plays jsonb;\nalter table games add column if not exists dealer text;\nalter table games add column if not exists dealer_tips numeric;\nalter table games add column if not exists squid_ack jsonb;\nalter table games add column if not exists created_at timestamptz;\nalter table games add column if not exists finished_at timestamptz;\ncreate table if not exists entries(id text primary key,game_id text,player_id text,profit numeric,buyins jsonb,cash_out numeric);\nalter table entries add column if not exists seat_at timestamptz;\nalter table entries add column if not exists left_at timestamptz;\nalter table games add column if not exists auto_tickets_issued boolean;\nalter table seasons add column if not exists awards_issued boolean;\ncreate table if not exists player_badges(player_id text,badge_id text,game_id text,awarded_at timestamptz,primary key(player_id,badge_id));\ncreate table if not exists tickets(id text primary key,season_id text,game_id text,player_id text,reason text,count int,note text,drawn boolean,created_at timestamptz);\ncreate table if not exists draws(id text primary key,season_id text,prize text,winner_pid text,ticket_id text,pool_size int,seed text,created_at timestamptz);\ncreate table if not exists meetups(id text primary key,date date,status text,note text,created_at timestamptz);\ncreate table if not exists rsvps(meetup_id text,player_id text,status text,updated_at timestamptz,primary key(meetup_id,player_id));\ncreate table if not exists settings(key text primary key,value jsonb);\nalter table players enable row level security;alter table seasons enable row level security;alter table games enable row level security;alter table entries enable row level security;alter table player_badges enable row level security;alter table settings enable row level security;alter table meetups enable row level security;alter table rsvps enable row level security;\ndrop policy if exists "open" on players;\ncreate policy "open" on players for all using(true) with check(true);\ndrop policy if exists "open" on seasons;\ncreate policy "open" on seasons for all using(true) with check(true);\ndrop policy if exists "open" on games;\ncreate policy "open" on games for all using(true) with check(true);\ndrop policy if exists "open" on entries;\ncreate policy "open" on entries for all using(true) with check(true);\ndrop policy if exists "open" on player_badges;\ncreate policy "open" on player_badges for all using(true) with check(true);\ndrop policy if exists "open" on tickets;\ncreate policy "open" on tickets for all using(true) with check(true);\ndrop policy if exists "open" on draws;\ncreate policy "open" on draws for all using(true) with check(true);\ndrop policy if exists "open" on meetups;\ncreate policy "open" on meetups for all using(true) with check(true);\ndrop policy if exists "open" on rsvps;\ncreate policy "open" on rsvps for all using(true) with check(true);\ndrop policy if exists "open" on settings;\ncreate policy "open" on settings for all using(true) with check(true);`;
   navigator.clipboard.writeText(sql).then(()=>toast("建表 SQL 已复制")).catch(()=>prompt("复制这段 SQL:",sql));
 }
 
@@ -1589,6 +1749,7 @@ function router(){
   document.querySelectorAll("#bottomnav a").forEach(a=>a.classList.remove("active"));
   if(h.startsWith("#/prizes")){ $("[data-nav=prizes]").classList.add("active"); renderPrizes(); }
   else if(h.startsWith("#/live")){ $("[data-nav=live]").classList.add("active"); renderLive(); }
+  else if(h.startsWith("#/meetup")){ $("[data-nav=meetup]").classList.add("active"); renderMeetups(); }
   else if(h.startsWith("#/tickets")){ $("[data-nav=tickets]").classList.add("active"); renderTickets(); }
   else if(h.startsWith("#/admin")){ $("[data-nav=admin]").classList.add("active"); renderAdmin(); }
   else{ $("[data-nav=board]").classList.add("active"); renderBoard(); }
@@ -1611,6 +1772,7 @@ window.deskSetCashOut=deskSetCashOut; window.deskClearCashOut=deskClearCashOut; 
 window.onAvatarFile=onAvatarFile; window.onNewAvatarFile=onNewAvatarFile; window.clearAvatar=clearAvatar; window.renderLive=renderLive;
 window.saveSettings=saveSettings; window.savePw=savePw; window.saveSupa=saveSupa;
 window.exportJSON=exportJSON; window.exportSQL=exportSQL;
+window.renderMeetups=renderMeetups; window.setRSVP=setRSVP; window.rsvpSelf=rsvpSelf; window.rememberRsvpMe=rememberRsvpMe; window.fixRsvp=fixRsvp; window.createMeetup=createMeetup; window.setMeetupNote=setMeetupNote; window.delMeetup=delMeetup; window.openGameFromMeetup=openGameFromMeetup;
 
 /* ============ 云端模式自动刷新（玩家侧实时看） ============ */
 let pollStarted=false;
@@ -1638,13 +1800,14 @@ function startPolling(){
   if(migrated&&STORE.mode==="cloud"){ for(const e of DB.entries) await dbPut("entries",e).catch(()=>{}); }
   // 赛季信息校正：OMT战队第一赛季日期固定为 2026-10-25 至 2026-11-30
   (DB.seasons||[]).forEach(s=>{ if(s.name==="OMT战队第一赛季"||s.id==="s4"){ s.start_date="2026-10-25"; s.end_date="2026-11-30"; } });
-  if(!DB.settings) DB.settings={adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000,ontimeCutoff:"19:30",ironGames:12,squidAmount:10,squidSound:false};
+  if(!DB.settings) DB.settings={adminPw:"walnut888",attendancePts:1,buyinMult:{"标准":1,"深筹":1.5,"豪客":2},whaleLine:800,creditLimit:3000,ontimeCutoff:"19:30",ironGames:12,squidAmount:10,squidSound:false,quorum:6};
   if(DB.settings.creditLimit==null) DB.settings.creditLimit=3000;
   if(DB.settings.ontimeCutoff==null) DB.settings.ontimeCutoff="19:30";
   if(DB.settings.ironGames==null) DB.settings.ironGames=12;
   if(DB.settings.squidAmount==null) DB.settings.squidAmount=10;
   if(DB.settings.squidSound==null) DB.settings.squidSound=false;
-  DB.tickets=DB.tickets||[]; DB.draws=DB.draws||[];
+  if(DB.settings.quorum==null) DB.settings.quorum=6;
+  DB.tickets=DB.tickets||[]; DB.draws=DB.draws||[]; DB.meetups=DB.meetups||[]; DB.rsvps=DB.rsvps||[];
   if(!DB.settings.ticketRules) DB.settings.ticketRules={...DEFAULT_TICKETS};
   // 演示奖品若从未改动过（旧赛季排名奖品），换成新赛季抽奖奖品结构
   try{
